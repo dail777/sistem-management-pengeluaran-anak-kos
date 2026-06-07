@@ -226,10 +226,8 @@
     const user = getUser();
     const el = document.getElementById("dk-user-badge");
     const nameEl = document.getElementById("dk-user-name");
-    const infoMenu = document.getElementById("dk-info-menu");
     if (el) el.style.display = user ? "flex" : "none";
     if (nameEl && user) nameEl.textContent = user.username + (user.is_admin ? " (admin)" : "");
-    if (infoMenu) infoMenu.style.display = user ? "flex" : "none";
   }
 
   function finishLogin() {
@@ -287,9 +285,8 @@
     document
       .getElementById("dk-auth-form")
       .addEventListener("submit", handleSubmit);
-    document
-      .getElementById("dk-logout-btn")
-      .addEventListener("click", logout);
+    // Expose logout for menu dropdown (info.js binds the actual menu items)
+    window.DK_Logout = logout;
 
     const token = getToken();
     if (!token) {

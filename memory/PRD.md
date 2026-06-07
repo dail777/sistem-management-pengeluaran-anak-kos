@@ -40,7 +40,10 @@
 - [x] Format expense menabung = `menabung - nama target`
 - [x] Setor: warning saat tidak ada budget
 
-### Iteration 4 (2026-06-07) — current
+### Iteration 5 (2026-06-07) — current
+- [x] **Unified user dropdown menu** — gabung Tentang/Support/Bantuan/Keluar ke satu dropdown dengan trigger hamburger button (`☰`). Animasi slide-down + fade-in saat dibuka. Auto-close saat klik di luar atau ESC. Info menu inline lama dihapus.
+
+### Iteration 4 (2026-06-07)
 - [x] **Custom-designed confirm/alert modal** (`dk-modal.js`) — replace SEMUA native `alert()`/`confirm()` (logout, target delete, expense delete, setor 4 branches, tx form validation, admin delete, admin change-pw, admin self-pw).
 - [x] **Konfirmasi tambahan** untuk Admin: Hapus User (danger variant) + Ganti Password User/Admin (warning variant) — 2-step (form submit → confirm).
 - [x] **Desktop layout polish** — sidebar visible di kiri, bottom-nav hidden, `.app-main` centered (max-width 800px, justify-self center), `body.dk-admin-mode` jadi `display: block` + `.admin-dashboard` centered (max-width 1100px). No horizontal overflow.

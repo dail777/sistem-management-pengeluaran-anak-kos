@@ -3239,3 +3239,91 @@ html, body { overflow-x: hidden; }
   body.dk-admin-mode .sidebar-nav { display: none !important; }
   body.dk-admin-mode .bottom-nav  { display: none !important; }
 }
+
+/* ============================================================
+   USER MENU DROPDOWN (replaces inline info menu + logout)
+   Position: anchored to top-right (like old logout button area).
+   Animation: slide-down + fade-in on open.
+   ============================================================ */
+.dk-user-menu {
+  position: fixed;
+  top: 52px;
+  right: 12px;
+  z-index: 600;
+  min-width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.96);
+  transform-origin: top right;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.21,1.02,.73,1), visibility 0.18s;
+  pointer-events: none;
+}
+.dk-user-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.dk-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-1);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.dk-user-menu-item:hover {
+  background: var(--bg);
+}
+.dk-user-menu-item .ti {
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+.dk-user-menu-item.dk-user-menu-danger {
+  color: var(--danger);
+}
+.dk-user-menu-item.dk-user-menu-danger .ti {
+  color: var(--danger);
+}
+.dk-user-menu-item.dk-user-menu-danger:hover {
+  background: #fee2e2;
+}
+.dk-user-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+/* Hide menu while not authenticated */
+body.dk-no-auth .dk-user-menu { display: none !important; }
+/* In admin mode also keep menu visible (admin still needs logout) */
+@media (min-width: 768px) {
+  .dk-user-menu {
+    top: 60px;
+    right: 24px;
+  }
+}
+/* When menu toggle is active, rotate icon hint */
+#dk-menu-toggle[aria-expanded="true"] .ti-menu-2 {
+  transform: rotate(90deg);
+}
+#dk-menu-toggle .ti-menu-2 {
+  transition: transform 0.18s ease;
+}

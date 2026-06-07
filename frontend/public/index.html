@@ -104,25 +104,29 @@
       </div>
     </div>
 
-    <!-- ============== USER BADGE + INFO MENU (top-right, after login) ============== -->
+    <!-- ============== USER BADGE + MENU (top-right, after login) ============== -->
     <div id="dk-user-badge" class="dk-user-badge" style="display:none" data-testid="user-badge">
       <span id="dk-sync-indicator" class="dk-sync-indicator ok" title="Tersimpan & terenkripsi di server"></span>
       <i class="ti ti-user-circle"></i>
       <span id="dk-user-name" data-testid="user-name">user</span>
-      <button id="dk-logout-btn" class="dk-logout-btn" title="Keluar" data-testid="logout-btn">
-        <i class="ti ti-logout"></i>
+      <button id="dk-menu-toggle" class="dk-logout-btn" title="Menu" data-testid="user-menu-toggle" aria-haspopup="true" aria-expanded="false">
+        <i class="ti ti-menu-2"></i>
       </button>
     </div>
 
-    <div id="dk-info-menu" class="dk-info-menu" style="display:none" data-testid="info-menu">
-      <button class="dk-info-btn" data-info-open="modal-tentang" data-testid="info-tentang-btn">
+    <div id="dk-user-menu" class="dk-user-menu" data-testid="user-menu" role="menu" aria-hidden="true">
+      <button class="dk-user-menu-item" data-menu-action="modal-tentang" data-testid="menu-tentang-btn" role="menuitem">
         <i class="ti ti-info-circle"></i><span>Tentang</span>
       </button>
-      <button class="dk-info-btn" data-info-open="modal-support" data-testid="info-support-btn">
+      <button class="dk-user-menu-item" data-menu-action="modal-support" data-testid="menu-support-btn" role="menuitem">
         <i class="ti ti-heart-handshake"></i><span>Support</span>
       </button>
-      <button class="dk-info-btn" data-info-open="modal-bantuan" data-testid="info-bantuan-btn">
+      <button class="dk-user-menu-item" data-menu-action="modal-bantuan" data-testid="menu-bantuan-btn" role="menuitem">
         <i class="ti ti-help-circle"></i><span>Bantuan</span>
+      </button>
+      <div class="dk-user-menu-divider"></div>
+      <button class="dk-user-menu-item dk-user-menu-danger" data-menu-action="logout" data-testid="menu-logout-btn" role="menuitem">
+        <i class="ti ti-logout"></i><span>Keluar</span>
       </button>
     </div>
 

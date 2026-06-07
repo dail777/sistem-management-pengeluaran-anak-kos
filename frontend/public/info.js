@@ -64,6 +64,7 @@
   }
 
   function setup() {
+    // Legacy: still support data-info-open attribute if any
     document.querySelectorAll("[data-info-open]").forEach((btn) => {
       btn.addEventListener("click", () => openModal(btn.dataset.infoOpen));
     });
@@ -75,6 +76,43 @@
         if (e.target === m) m.style.display = "none";
       });
     });
+
+    // ===== Unified user menu (hamburger dropdown) =====
+    const toggle = document.getElementById("dk-menu-toggle");
+    const menu = document.getElementById("dk-user-menu");
+    if (toggle && menu) {
+      function setOpen(open) {
+        menu.classList.toggle("open", open);
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        menu.setAttribute("aria-hidden", open ? "false" : "true");
+      }
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setOpen(!menu.classList.contains("open"));
+      });
+      // Outside click closes
+      document.addEventListener("click", (e) => {
+        if (!menu.classList.contains("open")) return;
+        if (menu.contains(e.target) || toggle.contains(e.target)) return;
+        setOpen(false);
+      });
+      // ESC closes
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && menu.classList.contains("open")) setOpen(false);
+      });
+      // Menu items
+      menu.querySelectorAll("[data-menu-action]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.menuAction;
+          setOpen(false);
+          if (action === "logout") {
+            if (typeof window.DK_Logout === "function") window.DK_Logout();
+          } else if (action && action.startsWith("modal-")) {
+            openModal(action);
+          }
+        });
+      });
+    }
   }
 
   if (document.readyState === "loading") {
