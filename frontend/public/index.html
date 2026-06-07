@@ -69,7 +69,14 @@
               required
               data-testid="auth-password-input"
             />
-
+         </div>
+          
+          <label class="dk-auth-remember">
+            <input type="checkbox" id="dk-auth-remember" />
+            <span>Ingat saya di perangkat ini</span>
+          </label>
+          
+          <div id="dk-auth-error" class="dk-auth-error" style="display:none" data-testid="auth-error"></div>
           <button
             type="submit"
             id="dk-auth-submit"
