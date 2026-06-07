@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 2 end-to-end testing of admin dashboard (list/search/delete/change-pw/self-pw), /auth/refresh, AES-GCM at-rest encryption, and frontend admin + normal user flows. 47/47 pytest backend tests PASS (test_dompetku_backend.py 19, test_iteration2_admin_refresh.py 19, test_iteration3_delete_and_self_pw.py 9). Frontend: forgot-password modal opens cleanly with all 5 dev links and the Indonesian instruction text; admin login routes correctly to data-testid='admin-dashboard' with bottom-nav hidden, total/search/change-pw/delete/self-pw all present; admin search filters cards live. Normal-user hydration from server verified (PUT /api/data via JS → reload → income Rp 5.000.000 renders in 'Transaksi Terakhir'). Code review of script.js L291-294 (dashboard) and L391-392 (list-pengeluaran) confirms the EXACT 'menabung - <nama target>' lowercase-dash label format and that the separate note line is suppressed (`!isMenabung && item.note`) for menabung entries. After all tests, admin password verified to be restored to 'admin123'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "modal-forgot dev links (index.html L282-322)",
+        "issue": "All 5 'forgot-dev-link-{1..5}' href values are the placeholder 'https://instagram.com/' rather than the real developer Instagram handles requested in the spec (5 developer Instagram links). User reaching the popup just sees 5 identical generic links.",
+        "selector": "[data-testid^='forgot-dev-link-']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Setor flow (script.js L1255-1294)",
+        "issue": "When NO monthly budget is set (budgetTotal === 0) and sisa keuangan is sufficient, the user proceeds straight to the generic confirm() dialog with no explicit 'belum ada budget bulan ini' warning. PRD says 'Setor with no budget set must also warn before proceeding'. The current code skips the budget-warning branch entirely when budgetTotal=0.",
+        "selector": "#form-setor-target",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dompetku_backend.py",
+    "/app/backend/tests/test_iteration2_admin_refresh.py",
+    "/app/backend/tests/test_iteration3_delete_and_self_pw.py",
+    "/app/test_reports/pytest/iteration4_results.xml"
+  ],
+  "action_items": [
+    "Replace the 5 placeholder 'https://instagram.com/' hrefs in #modal-forgot with the real developer Instagram handles requested in the PRD.",
+    "Extend setor budget-check branch to also warn (or at least surface an info confirm) when budgetTotal === 0 — current behaviour skips the warning when monthly budget is not configured.",
+    "(Optional) Expose a data-testid on the target's Setor button (currently the visible Setor button on the target detail panel is only addressable by text match, which made E2E automation of the full setor flow brittle)."
+  ],
+  "critical_code_review_comments": [
+    "server.py L362-379 admin_delete_user: deletes only the per-user .json.enc file but does NOT also wipe any cached encrypted backups (none today, but if backups are added later remember to chain the delete).",
+    "server.py L335-346 admin_change_password: silently overwrites password hash with no audit log entry / no email notification — acceptable for personal app, flag for awareness.",
+    "server.py L281-285 /api/auth/refresh: does NOT invalidate the old token (both keep working). That is documented as a sliding-session design but worth keeping in mind if revocation is ever needed.",
+    "script.js L1283-1287: setor warning logic uses an if/else-if chain such that when budgetTotal === 0 the budget branch is skipped entirely. Consider adding a third `else if (budgetTotal === 0)` branch to surface a 'belum ada budget bulan ini' confirm prompt before proceeding.",
+    "script.js setor flow uses native window.confirm() / window.alert() — Playwright must auto-accept these and they are not stylable. Acceptable for personal app, but a custom modal would be more on-brand.",
+    "Target schema mismatch risk: server PUT accepts any list shape, but the UI requires `targetAmount` / `currentAmount` fields. Pushing legacy/foreign data shapes (e.g. `target` / `current`) results in 'Rp NaN' / 'NaN%' rendering. Consider client-side normalisation or Pydantic-stricter target schema on the server."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (47/47 pytest)",
+    "frontend": "~90% — all admin & forgot-modal & hydration flows verified; the menabung-label runtime path was code-reviewed (correct) but not fully E2E driven through the UI due to setor-button discoverability"
+  },
+  "test_credentials": "admin / admin123 (verified restored after all password-mutation tests). Pytest also creates disposable users it2_x_*, it2_y_*, it3_* per run.",
+  "seed_data_creation": "Created ephemeral UI user 'ui2_<ts>' and PUT a seed payload of 1 income + 1 monthly-category budget + 1 target via /api/data with their token, to drive the dashboard hydration test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend is 100% green and admin password is at 'admin123'. Two outstanding frontend items worth verifying after the next fix: (1) modal-forgot dev links should point to real Instagram profiles, not the generic 'https://instagram.com/'; (2) setor-with-no-budget should explicitly warn the user. If you need to E2E the full menabung-setor flow, navigate via Target Menabung detail page → choose target → Setor (the Setor button is inside the target detail panel, not on the dashboard shortcut card).",
+  "rca_of_the_issue": "No new backend regressions. For the dev-link placeholder issue the RCA is simply that the href values were not yet replaced with the real handles. For the no-budget setor warning, RCA is in script.js L1283-1287: `if (budgetTotal > 0 && budgetSisa < nominal) {...} else if (sisa < nominal) {...}` — the absence of an explicit `else if (budgetTotal === 0)` arm makes the code silently fall through to the generic confirm() when no budget exists."
+}

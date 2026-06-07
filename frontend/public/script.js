@@ -288,13 +288,17 @@ window.__dompetkuInit = function () {
                 </div>`;
             } else {
               const c = catCfg[item.category] || catCfg.lainnya;
+              const txLabel =
+                item.category === "menabung" && item.note
+                  ? `menabung - ${item.note}`
+                  : `${c.label}${item.note ? ` · ${item.note}` : ""}`;
               return `
                 <div class="tx-item">
                     <span class="cat-icon ${c.cls}" style="width:40px;height:40px;border-radius:12px;font-size:1.05rem;flex-shrink:0">
                         <i class="ti ${c.icon}"></i>
                     </span>
                     <div class="tx-body">
-                        <div class="tx-source">${c.label}${item.note ? ` · ${item.note}` : ""}</div>
+                        <div class="tx-source">${txLabel}</div>
                         <div class="tx-date">${formatDate(item.date)}</div>
                     </div>
                     <div class="tx-amount expense">−${formatRupiah(item.amount)}</div>
@@ -384,15 +388,17 @@ window.__dompetkuInit = function () {
       .reverse()
       .map((item) => {
         const c = catCfg[item.category] || catCfg.lainnya;
+        const isMenabung = item.category === "menabung" && item.note;
+        const txLabel = isMenabung ? `menabung - ${item.note}` : c.label;
         return `
           <div class="tx-item">
               <span class="cat-icon ${c.cls}" style="width:40px;height:40px;border-radius:12px;font-size:1.1rem;flex-shrink:0">
                   <i class="ti ${c.icon}"></i>
               </span>
               <div class="tx-body">
-                  <div class="tx-source">${c.label}</div>
+                  <div class="tx-source">${txLabel}</div>
                   <div class="tx-date">${formatDate(item.date)}</div>
-                  ${item.note ? `<div class="tx-note">${item.note}</div>` : ""}
+                  ${!isMenabung && item.note ? `<div class="tx-note">${item.note}</div>` : ""}
               </div>
               <div class="tx-amount expense">−${formatRupiah(item.amount)}</div>
           </div>
