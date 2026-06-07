@@ -149,7 +149,18 @@ async def get_current_user(
     user = users.get(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    return {"id": user_id, "username": user["username"], "email": user.get("email")}
+    return {
+        "id": user_id,
+        "username": user["username"],
+        "email": user.get("email"),
+        "is_admin": bool(user.get("is_admin", False)),
+    }
+
+
+async def require_admin(current=Depends(get_current_user)) -> dict:
+    if not current.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Hanya admin yang dapat mengakses")
+    return current
 
 
 # ============ PYDANTIC MODELS ============
@@ -168,6 +179,19 @@ class UserOut(BaseModel):
     id: str
     username: str
     email: Optional[str] = None
+    is_admin: bool = False
+
+
+class AdminUserOut(BaseModel):
+    id: str
+    username: str
+    email: Optional[str] = None
+    is_admin: bool = False
+    created_at: Optional[str] = None
+
+
+class ChangePasswordIn(BaseModel):
+    new_password: str = Field(min_length=6, max_length=128)
 
 
 class AuthOut(BaseModel):
@@ -212,6 +236,7 @@ async def register(body: RegisterIn):
         "username": username,
         "email": body.email.lower() if body.email else None,
         "password_hash": hash_password(body.password),
+        "is_admin": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     save_users(users)
@@ -220,7 +245,7 @@ async def register(body: RegisterIn):
 
     token = create_access_token(user_id, username)
     return AuthOut(
-        user=UserOut(id=user_id, username=username, email=users[user_id]["email"]),
+        user=UserOut(id=user_id, username=username, email=users[user_id]["email"], is_admin=False),
         access_token=token,
     )
 
@@ -243,9 +268,21 @@ async def login(body: LoginIn):
 
     token = create_access_token(found_uid, found_user["username"])
     return AuthOut(
-        user=UserOut(id=found_uid, username=found_user["username"], email=found_user.get("email")),
+        user=UserOut(
+            id=found_uid,
+            username=found_user["username"],
+            email=found_user.get("email"),
+            is_admin=bool(found_user.get("is_admin", False)),
+        ),
         access_token=token,
     )
+
+
+@api.post("/auth/refresh", response_model=AuthOut)
+async def refresh(current=Depends(get_current_user)):
+    """Issue a new 7-day token for an already-authenticated user (sliding session)."""
+    token = create_access_token(current["id"], current["username"])
+    return AuthOut(user=UserOut(**current), access_token=token)
 
 
 @api.get("/auth/me", response_model=UserOut)
@@ -263,9 +300,50 @@ async def get_data(current=Depends(get_current_user)):
 @api.put("/data")
 async def put_data(body: UserDataIn, current=Depends(get_current_user)):
     """Encrypt and persist the user's full data set."""
+    if current.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin tidak menyimpan data finansial")
     data = body.model_dump()
     save_user_data(current["id"], data)
     return {"ok": True, "saved_at": datetime.now(timezone.utc).isoformat()}
+
+
+# ============ ADMIN ENDPOINTS ============
+@api.get("/admin/users")
+async def admin_list_users(q: Optional[str] = None, current=Depends(require_admin)):
+    """List all users. Optional ?q= filter by username/email substring."""
+    users = load_users()
+    out = []
+    needle = (q or "").strip().lower()
+    for uid, u in users.items():
+        if u.get("is_admin"):
+            continue  # hide admin accounts from the list
+        if needle and needle not in u["username"] and needle not in (u.get("email") or ""):
+            continue
+        out.append(
+            AdminUserOut(
+                id=uid,
+                username=u["username"],
+                email=u.get("email"),
+                is_admin=bool(u.get("is_admin", False)),
+                created_at=u.get("created_at"),
+            ).model_dump()
+        )
+    out.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    return {"total": len(out), "users": out}
+
+
+@api.post("/admin/users/{user_id}/password")
+async def admin_change_password(
+    user_id: str, body: ChangePasswordIn, current=Depends(require_admin)
+):
+    users = load_users()
+    if user_id not in users:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if users[user_id].get("is_admin"):
+        raise HTTPException(status_code=400, detail="Tidak dapat mengubah password admin")
+    users[user_id]["password_hash"] = hash_password(body.new_password)
+    save_users(users)
+    return {"ok": True, "username": users[user_id]["username"]}
 
 
 app.include_router(api)
@@ -277,3 +355,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ============ STARTUP: SEED ADMIN ============
+def seed_admin():
+    users = load_users()
+    admin_uid = None
+    for uid, u in users.items():
+        if u["username"] == "admin":
+            admin_uid = uid
+            break
+    if admin_uid is None:
+        admin_uid = str(uuid.uuid4())
+        users[admin_uid] = {
+            "username": "admin",
+            "email": None,
+            "password_hash": hash_password("admin123"),
+            "is_admin": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        save_users(users)
+        logger.info("Seeded admin user (username=admin, password=admin123)")
+    else:
+        # Always ensure is_admin flag is correct
+        if not users[admin_uid].get("is_admin"):
+            users[admin_uid]["is_admin"] = True
+            save_users(users)
+
+
+@app.on_event("startup")
+async def on_startup():
+    seed_admin()

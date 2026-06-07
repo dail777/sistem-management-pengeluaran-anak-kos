@@ -105,6 +105,12 @@ window.__dompetkuInit = function () {
       label: "Lainnya",
       color: "#6B7280",
     },
+    menabung: {
+      icon: "ti-target",
+      cls: "cat-menabung",
+      label: "Menabung",
+      color: "#0F766E",
+    },
   };
 
   function catIcon(cat, size = "") {
@@ -1246,26 +1252,78 @@ window.__dompetkuInit = function () {
       e.preventDefault();
       const nominal = Number(document.getElementById("setor-nominal").value);
       const t = targets.find((x) => x.id === currentTargetId);
-
-      if (t && nominal > 0) {
-        t.currentAmount += nominal;
-        t.history.push({ date: new Date().toISOString(), amount: nominal });
-        if (t.currentAmount >= t.targetAmount && !t.isArchived) {
-          t.isArchived = true;
-          showToast(
-            "Yeay! Target tercapai, otomatis pindah ke arsip.",
-            "success",
-          );
-          const arsipTabBtn = document.querySelector(
-            '[data-tab-detail="target-arsip"]',
-          );
-          if (arsipTabBtn) arsipTabBtn.click();
-        } else {
-          showToast("Setoran berhasil ditambahkan!");
-        }
-        saveData();
-        renderTargets();
+      if (!t || !(nominal > 0)) {
+        document.getElementById("modal-setor-target").style.display = "none";
+        return;
       }
+
+      // ===== CEK BUDGET BULANAN & SISA KEUANGAN =====
+      const totalIn = incomes.reduce((a, b) => a + Number(b.amount || 0), 0);
+      const totalOut = expenses.reduce((a, b) => a + Number(b.amount || 0), 0);
+      const sisa = totalIn - totalOut;
+
+      // Cari budget bulanan yang aktif (untuk bulan berjalan)
+      const today = new Date();
+      const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      const budgetEntry = budgets.find((b) => b.month === ym);
+      const budgetTotal = budgetEntry ? Number(budgetEntry.amount || 0) : 0;
+      const budgetUsed = expenses
+        .filter((x) => (x.date || "").startsWith(ym))
+        .reduce((a, b) => a + Number(b.amount || 0), 0);
+      const budgetSisa = budgetTotal - budgetUsed;
+
+      // Cek apakah cukup
+      let lacking = null;
+      if (budgetTotal > 0 && budgetSisa < nominal) {
+        lacking = `Sisa budget bulan ini: ${formatRupiah(budgetSisa)} (kurang ${formatRupiah(nominal - budgetSisa)})`;
+      } else if (sisa < nominal) {
+        lacking = `Sisa keuangan kamu: ${formatRupiah(sisa)} (kurang ${formatRupiah(nominal - sisa)})`;
+      }
+
+      if (lacking) {
+        alert(
+          `Budget anda kurang untuk menyetor tabungan.\n\n${lacking}\n\nSilakan tambah pemasukan dulu atau setor dengan nominal lebih kecil.`,
+        );
+        return;
+      }
+
+      // Konfirmasi
+      const ok = confirm(
+        `Setor ${formatRupiah(nominal)} ke target "${t.name}"?\n\nBudget kamu akan otomatis berkurang sebesar nominal setoran.`,
+      );
+      if (!ok) return;
+
+      // Lanjutkan setor
+      t.currentAmount = (t.currentAmount || 0) + nominal;
+      t.history = t.history || [];
+      t.history.push({ date: new Date().toISOString(), amount: nominal });
+
+      // Catat sebagai expense kategori "menabung" supaya budget berkurang
+      expenses.push({
+        id: Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        amount: nominal,
+        category: "menabung",
+        note: `Menabung: ${t.name}`,
+        targetId: t.id,
+      });
+
+      if (t.currentAmount >= t.targetAmount && !t.isArchived) {
+        t.isArchived = true;
+        showToast(
+          "Yeay! Target tercapai, otomatis pindah ke arsip.",
+          "success",
+        );
+        const arsipTabBtn = document.querySelector(
+          '[data-tab-detail="target-arsip"]',
+        );
+        if (arsipTabBtn) arsipTabBtn.click();
+      } else {
+        showToast(`Setoran berhasil! −${formatRupiah(nominal)} dari budget.`);
+      }
+      saveData();
+      renderTargets();
+      renderDashboard && renderDashboard();
       document.getElementById("modal-setor-target").style.display = "none";
     });
 

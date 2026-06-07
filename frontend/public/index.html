@@ -99,7 +99,7 @@
       </div>
     </div>
 
-    <!-- ============== USER BADGE (top-right, after login) ============== -->
+    <!-- ============== USER BADGE + INFO MENU (top-right, after login) ============== -->
     <div id="dk-user-badge" class="dk-user-badge" style="display:none" data-testid="user-badge">
       <span id="dk-sync-indicator" class="dk-sync-indicator ok" title="Tersimpan & terenkripsi di server"></span>
       <i class="ti ti-user-circle"></i>
@@ -109,7 +109,165 @@
       </button>
     </div>
 
+    <div id="dk-info-menu" class="dk-info-menu" style="display:none" data-testid="info-menu">
+      <button class="dk-info-btn" data-info-open="modal-tentang" data-testid="info-tentang-btn">
+        <i class="ti ti-info-circle"></i><span>Tentang</span>
+      </button>
+      <button class="dk-info-btn" data-info-open="modal-support" data-testid="info-support-btn">
+        <i class="ti ti-heart-handshake"></i><span>Support</span>
+      </button>
+      <button class="dk-info-btn" data-info-open="modal-bantuan" data-testid="info-bantuan-btn">
+        <i class="ti ti-help-circle"></i><span>Bantuan</span>
+      </button>
+    </div>
+
     <!-- ============== DOMPETKU APP ============== -->
+    <!-- ============== ADMIN DASHBOARD ============== -->
+    <section id="admin-dashboard" class="admin-dashboard" style="display:none" data-testid="admin-dashboard">
+      <div class="admin-hero">
+        <div class="admin-hero-row">
+          <div>
+            <div class="admin-hero-title"><i class="ti ti-shield-lock"></i> Admin Panel</div>
+            <div class="admin-hero-sub">Kelola pengguna Dompetku</div>
+          </div>
+          <div class="admin-hero-stat">
+            <div class="admin-hero-stat-label">Total User Terdaftar</div>
+            <div class="admin-hero-stat-val" id="admin-total-users" data-testid="admin-total-users">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-search">
+          <i class="ti ti-search"></i>
+          <input type="text" id="admin-search-input" placeholder="Cari username atau email…" data-testid="admin-search-input" />
+        </div>
+        <button class="admin-refresh-btn" id="admin-refresh-btn" data-testid="admin-refresh-btn">
+          <i class="ti ti-refresh"></i> Reset
+        </button>
+      </div>
+
+      <div class="admin-result-bar">
+        Menampilkan <strong><span id="admin-result-count" data-testid="admin-result-count">0</span></strong> user
+      </div>
+
+      <div id="admin-user-grid" class="admin-user-grid" data-testid="admin-user-grid"></div>
+    </section>
+
+    <!-- Admin change-password modal -->
+    <div id="admin-pw-modal" class="modal-overlay" style="display:none" data-testid="admin-pw-modal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span class="modal-title">Ganti Password User</span>
+          <button class="modal-close" id="admin-pw-close"><i class="ti ti-x"></i></button>
+        </div>
+        <p class="admin-pw-desc">
+          Mengubah password untuk user: <strong id="admin-pw-target" data-testid="admin-pw-target">—</strong>
+        </p>
+        <form id="admin-pw-form">
+          <div class="form-group">
+            <label>Password Baru</label>
+            <input type="text" id="admin-pw-new" placeholder="Minimal 6 karakter" required data-testid="admin-pw-new-input" />
+          </div>
+          <div id="admin-pw-error" class="dk-auth-error" style="display:none" data-testid="admin-pw-error"></div>
+          <div class="admin-pw-actions">
+            <button type="button" class="btn-secondary" id="admin-pw-cancel">Batal</button>
+            <button type="submit" class="btn-primary" data-testid="admin-pw-submit"><i class="ti ti-key"></i> Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============== INFO MODALS: Tentang / Support / Bantuan ============== -->
+    <div id="modal-tentang" class="modal-overlay info-modal" style="display:none" data-testid="modal-tentang">
+      <div class="modal-box info-box">
+        <div class="modal-header">
+          <span class="modal-title"><i class="ti ti-info-circle"></i> Tentang Aplikasi</span>
+          <button class="modal-close" data-info-close="modal-tentang"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="info-body">
+          <p class="info-lead">
+            Aplikasi ini dibuat untuk memenuhi <strong>Ujian Akhir Semester</strong> mata kuliah
+            <strong>Basis Data</strong> yang diampu oleh <strong>Bapak Abdun Wijaya</strong>.
+          </p>
+          <div class="info-divider">Developer</div>
+          <div class="info-devs">
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="dev-link-1">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Ahmad Da'il Mukarrom</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="dev-link-2">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Al Farid Maulani</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="dev-link-3">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Farras Fairuzzabadi</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="dev-link-4">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Lasiah</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="dev-link-5">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Wawan Maulana Endang</span>
+            </a>
+          </div>
+          <div class="info-footer-note">© 2026 Dompetku — Tim UAS Basis Data</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-support" class="modal-overlay info-modal" style="display:none" data-testid="modal-support">
+      <div class="modal-box info-box">
+        <div class="modal-header">
+          <span class="modal-title"><i class="ti ti-heart-handshake"></i> Support</span>
+          <button class="modal-close" data-info-close="modal-support"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="info-body">
+          <p class="info-lead">
+            <strong>Support seikhlasnya.</strong>
+            Dana tersebut akan dialokasikan untuk mengembangkan aplikasi ini agar
+            kinerjanya jadi lebih baik.
+          </p>
+          <div class="info-qris-wrap">
+            <div class="info-qris-placeholder" data-testid="qris-placeholder">
+              <i class="ti ti-qrcode"></i>
+              <div>QRIS Pembayaran</div>
+              <small>(foto QRIS akan diganti oleh developer)</small>
+            </div>
+          </div>
+          <p class="info-small">
+            Scan QRIS di atas dengan aplikasi pembayaran favoritmu. Terima kasih banyak 🙏
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-bantuan" class="modal-overlay info-modal" style="display:none" data-testid="modal-bantuan">
+      <div class="modal-box info-box">
+        <div class="modal-header">
+          <span class="modal-title"><i class="ti ti-help-circle"></i> Bantuan</span>
+          <button class="modal-close" data-info-close="modal-bantuan"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="info-body">
+          <ol class="info-help-list">
+            <li><strong>Catat Pemasukan</strong> — buka tab "Pemasukan" atau tekan tombol "+" di tengah bawah, lalu pilih "Pemasukan".</li>
+            <li><strong>Catat Pengeluaran</strong> — gunakan tombol "+" dan pilih "Pengeluaran", tentukan kategori, nominal, dan catatan.</li>
+            <li><strong>Atur Budget Bulanan</strong> — tab "Budget", masukkan total budget untuk bulan tertentu.</li>
+            <li><strong>Buat Target Menabung</strong> — tab "Target" → "Buat Target", masukkan tujuan dan nominal yang ingin dicapai.</li>
+            <li><strong>Setor Tabungan</strong> — di tab Target tekan "Setor" pada target yang aktif. Sistem akan otomatis cek budget kamu.</li>
+            <li><strong>Logout</strong> — klik ikon panah keluar di pojok kanan atas.</li>
+          </ol>
+          <div class="info-divider">Keamanan Data</div>
+          <p class="info-small">
+            Semua data finansial kamu disimpan terenkripsi <strong>AES-256-GCM</strong> di
+            server. Tanpa akun & password kamu, data tidak dapat dibaca oleh siapapun.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <main class="app-main">
       <section id="tab-dashboard" class="tab-page active">
         <div class="page-scroll">
@@ -550,5 +708,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="%PUBLIC_URL%/auth.js"></script>
+    <script src="%PUBLIC_URL%/info.js"></script>
   </body>
 </html>

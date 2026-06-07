@@ -1,0 +1,180 @@
+// ============================================================
+// Dompetku Admin Dashboard
+// Loaded only when logged-in user.is_admin === true.
+// ============================================================
+(function () {
+  if (typeof window.DK_AdminBoot !== "undefined") return;
+
+  const API_BASE =
+    (window.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/$/, "") +
+    "/api";
+
+  function getToken() {
+    return sessionStorage.getItem("dk_auth_token") ||
+      localStorage.getItem("dk_auth_token");
+  }
+
+  async function api(path, opts = {}) {
+    const headers = Object.assign(
+      { "Content-Type": "application/json" },
+      opts.headers || {}
+    );
+    const token = getToken();
+    if (token) headers["Authorization"] = "Bearer " + token;
+    const res = await fetch(API_BASE + path, { ...opts, headers });
+    let body = null;
+    try { body = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      let msg = body && (body.detail || body.message);
+      if (Array.isArray(msg)) msg = msg.map((e) => e.msg || e).join(", ");
+      if (!msg) msg = `Permintaan gagal (${res.status})`;
+      throw new Error(msg);
+    }
+    return body;
+  }
+
+  let users = [];
+  let total = 0;
+
+  function render() {
+    const grid = document.getElementById("admin-user-grid");
+    const totalEl = document.getElementById("admin-total-users");
+    const countLabel = document.getElementById("admin-result-count");
+    if (totalEl) totalEl.textContent = total;
+    if (countLabel) countLabel.textContent = users.length;
+    if (!grid) return;
+    if (users.length === 0) {
+      grid.innerHTML = `<div class="admin-empty"><i class="ti ti-users-off"></i><div>Tidak ada user yang cocok</div></div>`;
+      return;
+    }
+    grid.innerHTML = users
+      .map(
+        (u) => `
+        <div class="admin-user-card" data-testid="admin-user-row">
+          <div class="admin-user-avatar"><i class="ti ti-user"></i></div>
+          <div class="admin-user-info">
+            <div class="admin-user-name" data-testid="admin-user-username">${escapeHtml(u.username)}</div>
+            <div class="admin-user-email">${escapeHtml(u.email || "tanpa email")}</div>
+            <div class="admin-user-meta">
+              <span class="admin-pill"><i class="ti ti-calendar"></i> ${fmtDate(u.created_at)}</span>
+              <span class="admin-pill admin-pill-id"><i class="ti ti-id"></i> ${u.id.slice(0, 8)}</span>
+            </div>
+          </div>
+          <div class="admin-user-actions">
+            <button class="btn-primary btn-sm" data-action="change-password" data-id="${u.id}" data-username="${escapeHtml(u.username)}" data-testid="admin-change-pw-btn">
+              <i class="ti ti-key"></i> Ganti Password
+            </button>
+          </div>
+        </div>
+      `
+      )
+      .join("");
+
+    grid.querySelectorAll('[data-action="change-password"]').forEach((btn) => {
+      btn.addEventListener("click", () => openChangePassword(btn.dataset.id, btn.dataset.username));
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+    } catch (e) { return iso; }
+  }
+
+  async function refresh(q = "") {
+    try {
+      const data = await api(`/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+      users = data.users || [];
+      total = data.total ?? users.length;
+      render();
+    } catch (e) {
+      console.error(e);
+      alert("Gagal memuat data: " + e.message);
+    }
+  }
+
+  function openChangePassword(uid, username) {
+    const modal = document.getElementById("admin-pw-modal");
+    document.getElementById("admin-pw-target").textContent = username;
+    document.getElementById("admin-pw-new").value = "";
+    document.getElementById("admin-pw-error").style.display = "none";
+    modal.dataset.uid = uid;
+    modal.style.display = "flex";
+    setTimeout(() => document.getElementById("admin-pw-new").focus(), 100);
+  }
+
+  function closeChangePassword() {
+    document.getElementById("admin-pw-modal").style.display = "none";
+  }
+
+  async function submitChangePassword(e) {
+    e.preventDefault();
+    const modal = document.getElementById("admin-pw-modal");
+    const uid = modal.dataset.uid;
+    const newPassword = document.getElementById("admin-pw-new").value;
+    const errEl = document.getElementById("admin-pw-error");
+    errEl.style.display = "none";
+    if (!newPassword || newPassword.length < 6) {
+      errEl.textContent = "Password minimal 6 karakter";
+      errEl.style.display = "block";
+      return;
+    }
+    try {
+      await api(`/admin/users/${uid}/password`, {
+        method: "POST",
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      closeChangePassword();
+      showAdminToast("Password berhasil diubah ✓");
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = "block";
+    }
+  }
+
+  function showAdminToast(msg) {
+    let t = document.getElementById("admin-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "admin-toast";
+      t.className = "admin-toast";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  window.DK_AdminBoot = function () {
+    document.getElementById("admin-dashboard").style.display = "block";
+    document.body.classList.add("dk-admin-mode");
+
+    const search = document.getElementById("admin-search-input");
+    let timer;
+    search.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => refresh(search.value), 250);
+    });
+
+    document.getElementById("admin-refresh-btn").addEventListener("click", () => {
+      search.value = "";
+      refresh();
+    });
+
+    document.getElementById("admin-pw-form").addEventListener("submit", submitChangePassword);
+    document.getElementById("admin-pw-close").addEventListener("click", closeChangePassword);
+    document.getElementById("admin-pw-cancel").addEventListener("click", closeChangePassword);
+    document.getElementById("admin-pw-modal").addEventListener("click", (e) => {
+      if (e.target.id === "admin-pw-modal") closeChangePassword();
+    });
+
+    refresh();
+  };
+})();

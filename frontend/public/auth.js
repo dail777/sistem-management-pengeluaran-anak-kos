@@ -222,13 +222,28 @@
     const user = getUser();
     const el = document.getElementById("dk-user-badge");
     const nameEl = document.getElementById("dk-user-name");
+    const infoMenu = document.getElementById("dk-info-menu");
     if (el) el.style.display = user ? "flex" : "none";
-    if (nameEl && user) nameEl.textContent = user.username;
+    if (nameEl && user) nameEl.textContent = user.username + (user.is_admin ? " (admin)" : "");
+    if (infoMenu) infoMenu.style.display = user ? "flex" : "none";
   }
 
   function finishLogin() {
     hideAuthScreen();
     showUserBadge();
+    const user = getUser();
+    if (user && user.is_admin) {
+      // Admin mode — boot admin dashboard, skip normal app
+      if (window.DK_AdminBoot) {
+        window.DK_AdminBoot();
+      } else {
+        const s = document.createElement("script");
+        s.src = "admin.js";
+        s.onload = () => window.DK_AdminBoot && window.DK_AdminBoot();
+        document.body.appendChild(s);
+      }
+      return;
+    }
     if (!window.__dompetkuStarted) {
       window.__dompetkuStarted = true;
       // Load original app script
