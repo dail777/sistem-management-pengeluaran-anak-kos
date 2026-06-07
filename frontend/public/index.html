@@ -91,6 +91,11 @@
           Belum punya akun? <a href="#" id="dk-auth-toggle-link">Daftar di sini</a>
         </div>
 
+        <a href="#" id="dk-auth-forgot-link" class="dk-auth-forgot" data-testid="auth-forgot-link"
+           onclick="event.preventDefault();document.getElementById('modal-forgot').style.display='flex';">
+          Lupa password?
+        </a>
+
         <div class="dk-auth-security">
           <i class="ti ti-shield-lock"></i>
           Data kamu dienkripsi <strong>AES-256-GCM</strong> di server, tidak
@@ -129,6 +134,11 @@
           <div>
             <div class="admin-hero-title"><i class="ti ti-shield-lock"></i> Admin Panel</div>
             <div class="admin-hero-sub">Kelola pengguna Dompetku</div>
+            <div class="admin-self-actions">
+              <button class="admin-self-btn" id="admin-self-pw-btn" data-testid="admin-self-pw-btn">
+                <i class="ti ti-key"></i> Ganti Password Saya
+              </button>
+            </div>
           </div>
           <div class="admin-hero-stat">
             <div class="admin-hero-stat-label">Total User Terdaftar</div>
@@ -263,6 +273,49 @@
           <p class="info-small">
             Semua data finansial kamu disimpan terenkripsi <strong>AES-256-GCM</strong> di
             server. Tanpa akun & password kamu, data tidak dapat dibaca oleh siapapun.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== FORGOT PASSWORD MODAL ============== -->
+    <div id="modal-forgot" class="modal-overlay info-modal" style="display:none" data-testid="modal-forgot">
+      <div class="modal-box info-box">
+        <div class="modal-header">
+          <span class="modal-title"><i class="ti ti-key"></i> Lupa Password</span>
+          <button class="modal-close"
+            onclick="document.getElementById('modal-forgot').style.display='none'">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+        <div class="info-body">
+          <p class="info-lead" data-testid="forgot-instruction">
+            Hubungi developer untuk mengganti password :
+          </p>
+          <div class="info-devs">
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="forgot-dev-link-1">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Ahmad Da'il Mukarrom</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="forgot-dev-link-2">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Al Farid Maulani</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="forgot-dev-link-3">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Farras Fairuzzabadi</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="forgot-dev-link-4">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Lasiah</span>
+            </a>
+            <a href="https://instagram.com/" target="_blank" rel="noopener" class="info-dev-card" data-testid="forgot-dev-link-5">
+              <i class="ti ti-brand-instagram"></i>
+              <span>Wawan Maulana Endang</span>
+            </a>
+          </div>
+          <p class="info-small" style="margin-top:14px">
+            Tim akan membantu reset password akunmu secepatnya.
           </p>
         </div>
       </div>

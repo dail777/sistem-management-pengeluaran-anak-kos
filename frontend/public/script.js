@@ -1304,7 +1304,7 @@ window.__dompetkuInit = function () {
         date: new Date().toISOString().slice(0, 10),
         amount: nominal,
         category: "menabung",
-        note: `Menabung: ${t.name}`,
+        note: t.name,
         targetId: t.id,
       });
 

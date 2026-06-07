@@ -184,6 +184,10 @@
         authMode = authMode === "login" ? "register" : "login";
         renderAuthMode();
       });
+    const forgotLink = document.getElementById("dk-auth-forgot-link");
+    if (forgotLink) {
+      forgotLink.style.display = authMode === "login" ? "" : "none";
+    }
   }
 
   async function handleSubmit(e) {

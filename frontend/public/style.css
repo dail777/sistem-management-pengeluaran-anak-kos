@@ -2977,3 +2977,79 @@ body.dk-admin-mode .dk-info-menu {
   background: rgba(15, 118, 110, 0.12) !important;
   color: #0F766E !important;
 }
+
+/* Forgot password link */
+.dk-auth-forgot {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-3);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.dk-auth-forgot:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Admin: own password button & delete button */
+.admin-self-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-self-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 14px;
+  border-radius: var(--r);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+  backdrop-filter: blur(8px);
+}
+.admin-self-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.admin-user-actions {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+}
+.btn-danger {
+  background: #fee2e2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-danger:hover {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+.btn-sm.btn-danger {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+}
+
+/* Forgot modal must appear ABOVE auth screen (z-index 9000) */
+#modal-forgot {
+  z-index: 9500 !important;
+}

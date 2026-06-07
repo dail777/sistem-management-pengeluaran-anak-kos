@@ -64,6 +64,9 @@
             <button class="btn-primary btn-sm" data-action="change-password" data-id="${u.id}" data-username="${escapeHtml(u.username)}" data-testid="admin-change-pw-btn">
               <i class="ti ti-key"></i> Ganti Password
             </button>
+            <button class="btn-danger btn-sm" data-action="delete-user" data-id="${u.id}" data-username="${escapeHtml(u.username)}" data-testid="admin-delete-user-btn">
+              <i class="ti ti-trash"></i> Hapus
+            </button>
           </div>
         </div>
       `
@@ -72,6 +75,9 @@
 
     grid.querySelectorAll('[data-action="change-password"]').forEach((btn) => {
       btn.addEventListener("click", () => openChangePassword(btn.dataset.id, btn.dataset.username));
+    });
+    grid.querySelectorAll('[data-action="delete-user"]').forEach((btn) => {
+      btn.addEventListener("click", () => deleteUser(btn.dataset.id, btn.dataset.username));
     });
   }
 
@@ -100,12 +106,13 @@
     }
   }
 
-  function openChangePassword(uid, username) {
+  function openChangePassword(uid, username, isSelf = false) {
     const modal = document.getElementById("admin-pw-modal");
     document.getElementById("admin-pw-target").textContent = username;
     document.getElementById("admin-pw-new").value = "";
     document.getElementById("admin-pw-error").style.display = "none";
     modal.dataset.uid = uid;
+    modal.dataset.self = isSelf ? "1" : "0";
     modal.style.display = "flex";
     setTimeout(() => document.getElementById("admin-pw-new").focus(), 100);
   }
@@ -118,6 +125,7 @@
     e.preventDefault();
     const modal = document.getElementById("admin-pw-modal");
     const uid = modal.dataset.uid;
+    const isSelf = modal.dataset.self === "1";
     const newPassword = document.getElementById("admin-pw-new").value;
     const errEl = document.getElementById("admin-pw-error");
     errEl.style.display = "none";
@@ -127,15 +135,40 @@
       return;
     }
     try {
-      await api(`/admin/users/${uid}/password`, {
+      const endpoint = isSelf
+        ? "/admin/me/password"
+        : `/admin/users/${uid}/password`;
+      await api(endpoint, {
         method: "POST",
         body: JSON.stringify({ new_password: newPassword }),
       });
       closeChangePassword();
-      showAdminToast("Password berhasil diubah ✓");
+      showAdminToast(
+        isSelf
+          ? "Password admin berhasil diubah ✓"
+          : "Password berhasil diubah ✓"
+      );
     } catch (e) {
       errEl.textContent = e.message;
       errEl.style.display = "block";
+    }
+  }
+
+  async function deleteUser(uid, username) {
+    if (
+      !confirm(
+        `Hapus akun "${username}"?\n\nSemua data finansial user ini akan dihapus permanen. Aksi ini tidak dapat dibatalkan.`
+      )
+    )
+      return;
+    try {
+      await api(`/admin/users/${uid}`, { method: "DELETE" });
+      showAdminToast(`Akun "${username}" berhasil dihapus`);
+      // Reload list
+      const search = document.getElementById("admin-search-input");
+      refresh(search ? search.value : "");
+    } catch (e) {
+      alert("Gagal menghapus: " + e.message);
     }
   }
 
@@ -174,6 +207,18 @@
     document.getElementById("admin-pw-modal").addEventListener("click", (e) => {
       if (e.target.id === "admin-pw-modal") closeChangePassword();
     });
+
+    const selfBtn = document.getElementById("admin-self-pw-btn");
+    if (selfBtn) {
+      selfBtn.addEventListener("click", () => {
+        const user = JSON.parse(
+          sessionStorage.getItem("dk_auth_user") ||
+            localStorage.getItem("dk_auth_user") ||
+            "{}"
+        );
+        openChangePassword(user.id || "self", user.username || "admin", true);
+      });
+    }
 
     refresh();
   };

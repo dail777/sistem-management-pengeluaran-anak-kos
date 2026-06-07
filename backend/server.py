@@ -346,6 +346,39 @@ async def admin_change_password(
     return {"ok": True, "username": users[user_id]["username"]}
 
 
+@api.post("/admin/me/password")
+async def admin_change_own_password(
+    body: ChangePasswordIn, current=Depends(require_admin)
+):
+    """Admin changes their own password."""
+    users = load_users()
+    if current["id"] not in users:
+        raise HTTPException(status_code=404, detail="Akun admin tidak ditemukan")
+    users[current["id"]]["password_hash"] = hash_password(body.new_password)
+    save_users(users)
+    return {"ok": True, "username": users[current["id"]]["username"]}
+
+
+@api.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, current=Depends(require_admin)):
+    users = load_users()
+    if user_id not in users:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if users[user_id].get("is_admin"):
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun admin")
+    username = users[user_id]["username"]
+    # Delete the user's encrypted data file
+    data_path = get_user_data_path(user_id)
+    if data_path.exists():
+        try:
+            data_path.unlink()
+        except Exception as e:
+            logger.warning("Failed to remove %s: %s", data_path, e)
+    del users[user_id]
+    save_users(users)
+    return {"ok": True, "deleted": username}
+
+
 app.include_router(api)
 
 app.add_middleware(
