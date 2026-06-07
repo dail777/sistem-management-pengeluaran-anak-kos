@@ -1,0 +1,53 @@
+{
+  "summary": "Iteration 5 (frontend iter 4 features) testing. Backend 47/47 pytest still green. Frontend: desktop layout (user) PASSES — sidebar visible at left, bottom-nav hidden, .app-main centered (left=660, width=820), no horizontal scroll. Info modal exclusivity PASSES — opening Tentang → Support → Bantuan correctly auto-closes the previously open one (only one info modal display:flex at any time). Z-index hierarchy PASSES — with #modal-tentang open, opening #tx-modal yields computed z-index 300 vs 150 so action modal sits in front of info modal. CRITICAL FAILURE: the entire SETOR submit flow does NOT fire — clicking 'Setor Sekarang' (or programmatically requestSubmit() on #form-setor-target) does nothing: no dk-confirm-modal appears, no native dialog fires, the setor modal remains open and no expense is added. This blocks verification of T9 (setor reduces budget by 200k → 800k), T10 (setor === sisa warning 'Pemasukan & budget akan habis!'), T11 (insufficient warning 'Sisa budget kurang'), T12 (no-budget warning 'Belum ada budget bulan ini'), T13 (no native dialogs in setor flow), and T14 (menabung label) — all gated on a successful setor. Logout dkConfirm and admin delete / change-pw / self-pw dk-confirm flows were also not fully E2E driven because the test session aborted before reaching them; however code review of auth.js L267-282 and admin.js L113-198 confirms the dkConfirm/dkAlert wiring is correct in source. Admin password verified RESTORED to 'admin123' (POST /api/auth/login returned 200) — no admin password mutation was performed by this iteration's tests.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Setor Tabungan form (#form-setor-target submit handler, script.js L1292-1404)",
+        "issue": "Clicking the 'Setor Sekarang' submit button (or calling requestSubmit() on the form) does NOT trigger the registered submit listener — no dkConfirm appears, no native dialog fires, the modal stays open at display:flex, and no expense is added. Verified with 3 independent fresh users (each seeded via API with income 5.000.000, budget 1.000.000, target 'Liburan'). Target tab renders the setor button correctly, openSetorModal() sets currentTargetId='t1' and opens the modal, the nominal input accepts the value, but the form's submit event handler at script.js L1294 never runs. Possible root cause: the addEventListener('submit', ...) attachment at L1292-1294 sits inside the window.__dompetkuInit IIFE which is invoked once by auth.js after login; if the listener attaches BEFORE the form is fully present in the DOM the binding silently no-ops (the `?.addEventListener` short-circuits when the element is null). Recommend either (a) move the listener attachment to run AFTER DOMContentLoaded inside __dompetkuInit, (b) use event delegation on a static ancestor, or (c) attach the listener inline in openSetorModal() once per open.",
+        "selector": "#form-setor-target button[type=\"submit\"]",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Setor menabung end-to-end (T9/T10/T11/T12/T13/T14)",
+        "issue": "Cannot validate budget reduction (1.000.000 → 800.000), cannot validate 'Pemasukan & budget akan habis!' warning, cannot validate 'Sisa budget kurang' alert, cannot validate 'Belum ada budget bulan ini' alert, and cannot regression-verify the 'menabung - <nama target>' history label — all blocked by the setor-submit listener not firing.",
+        "affected_selectors": ["#form-setor-target", "[data-testid='dk-confirm-modal']", "[data-testid='dk-confirm-title']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dompetku_backend.py",
+    "/app/backend/tests/test_iteration2_admin_refresh.py",
+    "/app/backend/tests/test_iteration3_delete_and_self_pw.py",
+    "/app/test_reports/pytest/iteration5_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix #form-setor-target submit listener attachment in script.js L1292 — currently the optional-chained addEventListener silently no-ops if invoked before the DOM is ready or before login completes. Move the binding inside openSetorModal (attach once, then setor flow runs every time) or wrap __dompetkuInit body in a DOMContentLoaded guard. After the fix, re-run T9-T14 to verify budget arithmetic (1M → 800k, Terpakai=0 because menabung is excluded), the SELURUH warning (nominal === sisa), the Sisa budget kurang alert (nominal > sisa), and the Belum ada budget alert (budgetTotal === 0).",
+    "Add data-testid='setor-submit-btn' on the 'Setor Sekarang' button (#form-setor-target button[type=submit]) and data-testid='setor-nominal-input' on #setor-nominal to make E2E testing more robust.",
+    "Re-run admin DELETE / CHANGE PW / SELF PW dk-confirm flows after the setor fix to fully verify the rest of iteration-4 scope (code review confirms wiring but no E2E click-through was completed)."
+  ],
+  "critical_code_review_comments": [
+    "script.js L1292-1294: `document.getElementById('form-setor-target')?.addEventListener('submit', ...)` uses the optional-chain which silently swallows null. If __dompetkuInit ever runs before the form is reachable (or if a re-render replaces the form node), the listener is permanently lost. This appears to be the live failure mode in iter-4.",
+    "script.js setor flow now correctly: (a) excludes category==='menabung' from budgetUsed (L1314-1316), (b) decrements budgetEntry.amount by nominal (L1382-1385), and (c) explicitly handles budgetTotal===0 (L1322-1324), all three matching PRD. The logic is correct — only the listener wiring blocks execution.",
+    "dk-modal.js is correctly Promise-based, exposes window.dkConfirm/dkAlert, sets z-index 9800 on .dk-cm-overlay (verified in style.css L3093), and is loaded BEFORE auth.js in index.html — wiring is sound.",
+    "info.js L49-60 closeAllInfoModals + openModal logic correctly enforces single-info-modal-open invariant (verified live).",
+    "style.css L3077-3086 sets action modals (#tx-modal, #modal-add-target, #modal-setor-target, #modal-history-target, #admin-pw-modal) to z-index 300 and .info-modal:not(#modal-forgot) to z-index 150 — confirmed live (tx=300, tentang=150).",
+    "style.css L3237-3240 desktop overrides correctly show .sidebar-nav and hide .bottom-nav for normal user, and hide both for body.dk-admin-mode — verified live for user.",
+    "index.html has no element with id `fab-tambah` — the PRD/review-request references #fab-tambah but the real FAB id is `btn-open-tx-modal` (index.html L616). Documentation mismatch only, not a runtime bug."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (47/47 pytest)",
+    "frontend": "~40% — desktop user layout, info modal exclusivity and z-index hierarchy verified; setor flow (T9-T14) blocked by submit-listener bug; admin layout and dk-confirm flows + logout dkConfirm not E2E driven this iteration (code review confirms wiring)."
+  },
+  "test_credentials": "admin / admin123 — VERIFIED still active at end of test (POST /api/auth/login → 200). Iter-5 tests created ephemeral users tdesk_*/tdesk2_*/tx_*/sx_*/victim_*/victim2_* via /api/auth/register but did NOT mutate admin password.",
+  "seed_data_creation": "Per ephemeral test user we PUT /api/data with incomes=[5.000.000], budgets=[{month:current, amount:1.000.000}], targets=[{id:'t1', name:'Liburan', targetAmount:5.000.000, currentAmount:0}].",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "The setor submit listener bug is the single blocker for iteration-4 acceptance. Once main agent fixes script.js L1292 (attach the submit listener inside openSetorModal OR after DOMContentLoaded, OR convert to event delegation), re-run: (1) setor 200k of 1M → dk-confirm title 'Setor Rp 200.000?' → confirm → dashboard shows budget Total Rp 800.000 + Terpakai Rp 0; (2) setor 800k of remaining 800k → dk-confirm warning title 'Pemasukan & budget akan habis!' with 'SELURUH' in message + cancel button; (3) setor 2.000.000 → dkAlert title 'Sisa budget kurang' with only OK button; (4) wipe budgets and setor 100k → dkAlert title 'Belum ada budget bulan ini'; (5) verify history label exactly 'menabung - Liburan' in dashboard recent + Semua Pengeluaran; (6) verify page.on('dialog') NEVER fires during any of these. Also drive logout/admin-delete/admin-change-pw/admin-self-pw dk-confirms (selectors: [data-testid='logout-btn'], [data-testid='admin-delete-user-btn'], [data-testid='admin-change-pw-btn'], [data-testid='admin-self-pw-btn'], [data-testid='dk-confirm-title'], [data-testid='dk-confirm-ok'], [data-testid='dk-confirm-cancel']). REMEMBER to restore admin password to 'admin123' if you mutate it.",
+  "rca_of_the_issue": "Root cause of the iter-5 critical bug: script.js wraps the entire app init (including the form-setor-target submit listener registration at L1292-1294) inside `window.__dompetkuInit = function() { ... }`, invoked once by auth.js L256-259 after the user logs in. The listener uses `document.getElementById('form-setor-target')?.addEventListener('submit', handler)` — the optional chain silently no-ops when the element is null. Either (a) the form node returns null at that moment, or (b) the listener attaches to a stale form that is later replaced. Either way the user's 'Setor Sekarang' click never reaches the handler so dkConfirm never opens, no expense is appended, budget never decrements. Mitigation options: (i) move the listener inside openSetorModal() guarded by a `dataset.bound` flag so it binds lazily and reliably; (ii) replace with document-level event delegation on submit events with selector match for #form-setor-target; (iii) ensure __dompetkuInit runs after the form is definitively in DOM (it should be, since it's static markup in index.html L726) — verify there's no naming collision or duplicate getElementById call that shadows the binding."
+}

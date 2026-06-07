@@ -44,7 +44,17 @@
   });
 
   // ===== Info pages =====
+  const INFO_IDS = ["modal-tentang", "modal-support", "modal-bantuan"];
+
+  function closeAllInfoModals() {
+    INFO_IDS.forEach((id) => {
+      const m = document.getElementById(id);
+      if (m) m.style.display = "none";
+    });
+  }
   function openModal(id) {
+    // Close any other info modal first so only one is visible at a time
+    closeAllInfoModals();
     const m = document.getElementById(id);
     if (m) m.style.display = "flex";
   }

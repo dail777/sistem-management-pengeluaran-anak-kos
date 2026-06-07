@@ -92,8 +92,11 @@ body {
     grid-area: main;
     padding: 32px 36px;
     max-width: 800px;
+    width: 100%;
+    justify-self: center;
     height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 
@@ -2715,6 +2718,9 @@ body.dk-no-auth .dk-user-badge {
   max-width: 1100px;
   margin: 0 auto;
 }
+body.dk-admin-mode {
+  display: block !important;
+}
 body.dk-admin-mode .app-main,
 body.dk-admin-mode .bottom-nav,
 body.dk-admin-mode .sidebar-nav {
@@ -2722,6 +2728,9 @@ body.dk-admin-mode .sidebar-nav {
 }
 body.dk-admin-mode .admin-dashboard {
   display: block !important;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 .admin-hero {
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
@@ -3052,4 +3061,181 @@ body.dk-admin-mode .dk-info-menu {
 /* Forgot modal must appear ABOVE auth screen (z-index 9000) */
 #modal-forgot {
   z-index: 9500 !important;
+}
+
+/* ===========================
+   Z-INDEX HIERARCHY (top wins)
+   - dk-cm-overlay (custom confirm/alert) : 9800
+   - modal-forgot                          : 9500
+   - auth screen                           : 9000
+   - action modals (tx, setor, target,
+     add-target, admin-pw, modal-history)  : 300
+   - info modals (Tentang/Support/Bantuan) : 150  ← BEHIND action modals
+   =========================== */
+
+/* Action modals — sit ABOVE info modals */
+#tx-modal,
+#modal-add-target,
+#modal-setor-target,
+#modal-history-target,
+#admin-pw-modal {
+  z-index: 300 !important;
+}
+
+/* Info modals (Tentang / Support / Bantuan) — behind action modals */
+.info-modal:not(#modal-forgot) {
+  z-index: 150 !important;
+}
+
+/* ===========================
+   CUSTOM CONFIRM / ALERT MODAL
+   =========================== */
+.dk-cm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: dkCmFadeIn 0.18s ease;
+  backdrop-filter: blur(2px);
+}
+.dk-cm-overlay.dk-cm-closing {
+  animation: dkCmFadeOut 0.14s ease forwards;
+}
+@keyframes dkCmFadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes dkCmFadeOut { from { opacity: 1 } to { opacity: 0 } }
+.dk-cm-box {
+  background: var(--bg-card);
+  border-radius: 18px;
+  padding: 28px 24px 20px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: dkCmPop 0.22s cubic-bezier(.21,1.02,.73,1) both;
+}
+@keyframes dkCmPop {
+  from { transform: translateY(12px) scale(.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.dk-cm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 1.8rem;
+}
+.dk-cm-box.dk-cm-primary .dk-cm-icon { background: var(--primary-light); color: var(--primary); }
+.dk-cm-box.dk-cm-danger  .dk-cm-icon { background: #fee2e2; color: var(--danger); }
+.dk-cm-box.dk-cm-warning .dk-cm-icon { background: #fef3c7; color: #d97706; }
+.dk-cm-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-1);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.dk-cm-message {
+  font-size: 0.88rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+.dk-cm-actions {
+  display: flex;
+  gap: 10px;
+}
+.dk-cm-actions > .dk-cm-btn:only-child {
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 120px;
+}
+.dk-cm-btn {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: transform .12s ease, background .15s, color .15s, box-shadow .15s;
+}
+.dk-cm-btn:active { transform: scale(0.97); }
+.dk-cm-btn-cancel {
+  background: var(--bg);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.dk-cm-btn-cancel:hover { background: var(--border); }
+.dk-cm-btn-confirm {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(45, 95, 71, 0.28);
+}
+.dk-cm-btn-confirm:hover { background: var(--primary-dark); }
+.dk-cm-box.dk-cm-danger .dk-cm-btn-confirm {
+  background: var(--danger);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.32);
+}
+.dk-cm-box.dk-cm-danger .dk-cm-btn-confirm:hover { background: #b91c1c; }
+.dk-cm-box.dk-cm-warning .dk-cm-btn-confirm {
+  background: #d97706;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.32);
+}
+.dk-cm-box.dk-cm-warning .dk-cm-btn-confirm:hover { background: #b45309; }
+
+/* ===========================
+   DESKTOP LAYOUT POLISH
+   - constrain main scroll, center content, hide horizontal overflow
+   =========================== */
+html, body { overflow-x: hidden; }
+@media (min-width: 768px) {
+  body { overflow-x: hidden; }
+  .app-main {
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .page-scroll {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Prevent inner cards with negative side-margins from causing horizontal scroll */
+  #tab-pengeluaran .card[style*="margin: 0 -16px"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: var(--r-lg) !important;
+    border: 1px solid var(--border) !important;
+  }
+  /* Make all .card rounded & contained */
+  .app-main .card { max-width: 100%; box-sizing: border-box; }
+  /* Hide horizontal table overflow gracefully */
+  .table-scroll { overflow-x: auto; max-width: 100%; }
+}
+@media (min-width: 1024px) {
+  .app-main {
+    max-width: 820px !important;
+    padding-left: 40px !important;
+    padding-right: 40px !important;
+  }
+}
+
+/* ============================================================
+   DESKTOP LAYOUT OVERRIDES (must come last to win cascade)
+   Force sidebar visible on desktop, bottom-nav hidden on desktop,
+   and admin layout to center properly.
+   ============================================================ */
+@media (min-width: 768px) {
+  .sidebar-nav { display: flex !important; }
+  .bottom-nav  { display: none !important; }
+  body.dk-admin-mode .sidebar-nav { display: none !important; }
+  body.dk-admin-mode .bottom-nav  { display: none !important; }
 }

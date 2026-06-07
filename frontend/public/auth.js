@@ -264,8 +264,17 @@
     }
   }
 
-  function logout() {
-    if (!confirm("Keluar dari akun?")) return;
+  async function logout() {
+    const ok = window.dkConfirm
+      ? await window.dkConfirm({
+          title: "Keluar dari akun?",
+          message: "Sesi kamu akan diakhiri di perangkat ini. Data tetap aman di server.",
+          confirmText: "Keluar",
+          cancelText: "Batal",
+          variant: "danger",
+        })
+      : confirm("Keluar dari akun?");
+    if (!ok) return;
     // Clear local cache, but data is safe on server
     DATA_KEYS.forEach((k) => _origSetItem(k, "[]"));
     clearToken();

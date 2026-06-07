@@ -102,7 +102,11 @@
       render();
     } catch (e) {
       console.error(e);
-      alert("Gagal memuat data: " + e.message);
+      if (window.dkAlert) {
+        await window.dkAlert({ title: "Gagal memuat data", message: e.message, variant: "danger" });
+      } else {
+        alert("Gagal memuat data: " + e.message);
+      }
     }
   }
 
@@ -126,6 +130,7 @@
     const modal = document.getElementById("admin-pw-modal");
     const uid = modal.dataset.uid;
     const isSelf = modal.dataset.self === "1";
+    const username = document.getElementById("admin-pw-target").textContent || "user";
     const newPassword = document.getElementById("admin-pw-new").value;
     const errEl = document.getElementById("admin-pw-error");
     errEl.style.display = "none";
@@ -134,6 +139,19 @@
       errEl.style.display = "block";
       return;
     }
+    // Confirm dialog before applying
+    const ok = window.dkConfirm
+      ? await window.dkConfirm({
+          title: isSelf ? "Ganti password admin?" : "Ganti password user?",
+          message: isSelf
+            ? `Password akun admin akan diperbarui. Pastikan kamu mengingatnya — tanpa password ini kamu tidak bisa masuk lagi.`
+            : `Password untuk "${username}" akan diperbarui. User harus login ulang dengan password baru.`,
+          confirmText: "Ya, ganti",
+          cancelText: "Batal",
+          variant: "warning",
+        })
+      : confirm("Yakin ganti password?");
+    if (!ok) return;
     try {
       const endpoint = isSelf
         ? "/admin/me/password"
@@ -155,20 +173,28 @@
   }
 
   async function deleteUser(uid, username) {
-    if (
-      !confirm(
-        `Hapus akun "${username}"?\n\nSemua data finansial user ini akan dihapus permanen. Aksi ini tidak dapat dibatalkan.`
-      )
-    )
-      return;
+    const ok = window.dkConfirm
+      ? await window.dkConfirm({
+          title: `Hapus akun "${username}"?`,
+          message:
+            "Seluruh data finansial user ini (pemasukan, pengeluaran, budget, target) akan dihapus permanen. Aksi ini TIDAK dapat dibatalkan.",
+          confirmText: "Ya, hapus",
+          cancelText: "Batal",
+          variant: "danger",
+        })
+      : confirm(`Hapus akun "${username}"?`);
+    if (!ok) return;
     try {
       await api(`/admin/users/${uid}`, { method: "DELETE" });
       showAdminToast(`Akun "${username}" berhasil dihapus`);
-      // Reload list
       const search = document.getElementById("admin-search-input");
       refresh(search ? search.value : "");
     } catch (e) {
-      alert("Gagal menghapus: " + e.message);
+      if (window.dkAlert) {
+        await window.dkAlert({ title: "Gagal menghapus", message: e.message, variant: "danger" });
+      } else {
+        alert("Gagal menghapus: " + e.message);
+      }
     }
   }
 

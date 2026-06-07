@@ -185,9 +185,13 @@ window.__dompetkuInit = function () {
 
     const mIncome = incomes.filter((i) => i.date.startsWith(month));
     const mExpense = expenses.filter((i) => i.date.startsWith(month));
+    // Setor menabung sudah memotong budget.amount langsung, jadi
+    // jangan dihitung lagi pada "Terpakai" budget untuk mencegah double-count.
+    const mExpenseBudget = mExpense.filter((i) => i.category !== "menabung");
 
     const totalIn = mIncome.reduce((s, i) => s + Number(i.amount), 0);
     const totalOut = mExpense.reduce((s, i) => s + Number(i.amount), 0);
+    const totalOutBudget = mExpenseBudget.reduce((s, i) => s + Number(i.amount), 0);
     const saldo = totalIn - totalOut;
 
     const elMonth = document.getElementById("dash-month-label");
@@ -216,7 +220,7 @@ window.__dompetkuInit = function () {
 
     if (activeBudget) {
       const bv = Number(activeBudget.amount);
-      const used = totalOut;
+      const used = totalOutBudget;
       const sisa = Math.max(bv - used, 0);
       const pct = bv > 0 ? Math.min(Math.round((used / bv) * 100), 100) : 0;
 
@@ -454,8 +458,9 @@ window.__dompetkuInit = function () {
     // Fix: Update stat budget-hero di tab riwayat biar gak statis
     const currentMonth = currentMonthKey();
     const currentB = budgets.find((b) => b.month === currentMonth);
+    // Exclude category "menabung" — setor sudah memotong budget.amount langsung
     const usedB = expenses
-      .filter((e) => e.date.startsWith(currentMonth))
+      .filter((e) => e.date.startsWith(currentMonth) && e.category !== "menabung")
       .reduce((s, e) => s + Number(e.amount), 0);
 
     const elHeroTotal = document.getElementById("budget-hero-total");
@@ -485,7 +490,7 @@ window.__dompetkuInit = function () {
       .reverse()
       .map((item) => {
         const used = expenses
-          .filter((e) => e.date.startsWith(item.month))
+          .filter((e) => e.date.startsWith(item.month) && e.category !== "menabung")
           .reduce((s, e) => s + Number(e.amount), 0);
         const sisa = Math.max(Number(item.amount) - used, 0);
         return `
@@ -842,9 +847,18 @@ window.__dompetkuInit = function () {
 
   const tbodyRiwayat = document.getElementById("tbody-riwayat");
   if (tbodyRiwayat) {
-    tbodyRiwayat.addEventListener("click", (e) => {
+    tbodyRiwayat.addEventListener("click", async (e) => {
       if (!e.target.matches(".btn-delete")) return;
-      if (!confirm("Hapus transaksi ini?")) return;
+      const ok = window.dkConfirm
+        ? await window.dkConfirm({
+            title: "Hapus transaksi?",
+            message: "Transaksi pengeluaran ini akan dihapus permanen.",
+            confirmText: "Hapus",
+            cancelText: "Batal",
+            variant: "danger",
+          })
+        : confirm("Hapus transaksi ini?");
+      if (!ok) return;
       expenses = expenses.filter((i) => i.id !== e.target.dataset.id);
       saveData();
       renderAll();
@@ -1026,12 +1040,19 @@ window.__dompetkuInit = function () {
   });
 
   if (btnSaveTx) {
-    btnSaveTx.addEventListener("click", () => {
+    btnSaveTx.addEventListener("click", async () => {
       const nominal = Number(txNominal.value.replace(/\./g, ""));
       const tgl = txTanggal.value;
-      if (!nominal || nominal <= 0)
-        return alert("Masukkan nominal terlebih dahulu.");
-      if (!tgl) return alert("Pilih tanggal.");
+      if (!nominal || nominal <= 0) {
+        if (window.dkAlert) await window.dkAlert({ title: "Nominal kosong", message: "Masukkan nominal terlebih dahulu." });
+        else alert("Masukkan nominal terlebih dahulu.");
+        return;
+      }
+      if (!tgl) {
+        if (window.dkAlert) await window.dkAlert({ title: "Tanggal belum dipilih", message: "Silakan pilih tanggal transaksi." });
+        else alert("Pilih tanggal.");
+        return;
+      }
 
       if (txType === "pemasukan") {
         incomes.push({
@@ -1042,7 +1063,11 @@ window.__dompetkuInit = function () {
           note: txCatatan.value,
         });
       } else {
-        if (!txKategori.value) return alert("Pilih kategori pengeluaran.");
+        if (!txKategori.value) {
+          if (window.dkAlert) await window.dkAlert({ title: "Kategori belum dipilih", message: "Pilih kategori pengeluaran terlebih dahulu." });
+          else alert("Pilih kategori pengeluaran.");
+          return;
+        }
         expenses.push({
           id: Date.now().toString(),
           date: tgl,
@@ -1231,8 +1256,20 @@ window.__dompetkuInit = function () {
     document.getElementById("modal-history-target").style.display = "flex";
   }
 
-  function deleteTarget(id) {
-    if (!confirm("Yakin mau hapus target ini?")) return;
+  async function deleteTarget(id) {
+    const t = targets.find((x) => x.id === id);
+    const ok = window.dkConfirm
+      ? await window.dkConfirm({
+          title: "Hapus target tabungan?",
+          message: t
+            ? `Target "${t.name}" dan seluruh riwayat setoran-nya akan dihapus permanen.`
+            : "Target ini akan dihapus permanen.",
+          confirmText: "Hapus",
+          cancelText: "Batal",
+          variant: "danger",
+        })
+      : confirm("Yakin mau hapus target ini?");
+    if (!ok) return;
     targets = targets.filter((t) => t.id !== id);
     saveData();
     renderTargets();
@@ -1254,7 +1291,7 @@ window.__dompetkuInit = function () {
 
   document
     .getElementById("form-setor-target")
-    ?.addEventListener("submit", (e) => {
+    ?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nominal = Number(document.getElementById("setor-nominal").value);
       const t = targets.find((x) => x.id === currentTargetId);
@@ -1273,40 +1310,66 @@ window.__dompetkuInit = function () {
       const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
       const budgetEntry = budgets.find((b) => b.month === ym);
       const budgetTotal = budgetEntry ? Number(budgetEntry.amount || 0) : 0;
+      // Hanya hitung pengeluaran non-menabung untuk budget terpakai
       const budgetUsed = expenses
-        .filter((x) => (x.date || "").startsWith(ym))
+        .filter((x) => (x.date || "").startsWith(ym) && x.category !== "menabung")
         .reduce((a, b) => a + Number(b.amount || 0), 0);
       const budgetSisa = budgetTotal - budgetUsed;
 
       // Cek apakah cukup
-      let lacking = null;
+      let lackTitle = null;
+      let lackMsg = null;
       if (budgetTotal === 0) {
-        lacking = `Belum ada budget bulan ini. Silakan atur budget bulanan terlebih dahulu sebelum menabung.`;
+        lackTitle = "Belum ada budget bulan ini";
+        lackMsg = "Silakan atur budget bulanan terlebih dahulu di tab Budget sebelum menabung.";
       } else if (budgetSisa < nominal) {
-        lacking = `Sisa budget bulan ini: ${formatRupiah(budgetSisa)} (kurang ${formatRupiah(nominal - budgetSisa)})`;
+        lackTitle = "Sisa budget kurang";
+        lackMsg = `Sisa budget bulan ini: ${formatRupiah(budgetSisa)}\nKurang: ${formatRupiah(nominal - budgetSisa)}\n\nSilakan setor dengan nominal lebih kecil atau tambah budget dulu.`;
       } else if (sisa < nominal) {
-        lacking = `Sisa keuangan kamu: ${formatRupiah(sisa)} (kurang ${formatRupiah(nominal - sisa)})`;
+        lackTitle = "Sisa keuangan kurang";
+        lackMsg = `Sisa keuangan kamu: ${formatRupiah(sisa)}\nKurang: ${formatRupiah(nominal - sisa)}\n\nTambah pemasukan terlebih dahulu atau setor dengan nominal lebih kecil.`;
       }
 
-      if (lacking) {
-        alert(
-          `Budget anda kurang untuk menyetor tabungan.\n\n${lacking}\n\nSilakan tambah pemasukan dulu atau setor dengan nominal lebih kecil.`,
-        );
+      if (lackTitle) {
+        if (window.dkAlert) {
+          await window.dkAlert({ title: lackTitle, message: lackMsg, variant: "warning" });
+        } else {
+          alert(`${lackTitle}\n\n${lackMsg}`);
+        }
         return;
       }
 
-      // Konfirmasi
-      const ok = confirm(
-        `Setor ${formatRupiah(nominal)} ke target "${t.name}"?\n\nBudget kamu akan otomatis berkurang sebesar nominal setoran.`,
-      );
-      if (!ok) return;
+      // Warning khusus: setoran menghabiskan seluruh sisa budget
+      if (nominal === budgetSisa) {
+        const okExhaust = window.dkConfirm
+          ? await window.dkConfirm({
+              title: "Pemasukan & budget akan habis!",
+              message: `Setoran ${formatRupiah(nominal)} ini akan menghabiskan SELURUH sisa budget bulan ini.\n\nLanjutkan setor ke target "${t.name}"?`,
+              confirmText: "Ya, lanjutkan",
+              cancelText: "Batal",
+              variant: "warning",
+            })
+          : confirm("Setoran ini akan menghabiskan seluruh budget. Lanjutkan?");
+        if (!okExhaust) return;
+      } else {
+        const ok = window.dkConfirm
+          ? await window.dkConfirm({
+              title: `Setor ${formatRupiah(nominal)}?`,
+              message: `Setor ke target "${t.name}".\n\nTotal budget bulan ini akan otomatis berkurang sebesar ${formatRupiah(nominal)}.`,
+              confirmText: "Setor sekarang",
+              cancelText: "Batal",
+              variant: "primary",
+            })
+          : confirm(`Setor ${formatRupiah(nominal)} ke target "${t.name}"?`);
+        if (!ok) return;
+      }
 
       // Lanjutkan setor
       t.currentAmount = (t.currentAmount || 0) + nominal;
       t.history = t.history || [];
       t.history.push({ date: new Date().toISOString(), amount: nominal });
 
-      // Catat sebagai expense kategori "menabung" supaya budget berkurang
+      // Catat sebagai expense kategori "menabung" untuk tampil di transaksi
       expenses.push({
         id: Date.now(),
         date: new Date().toISOString().slice(0, 10),
@@ -1315,6 +1378,11 @@ window.__dompetkuInit = function () {
         note: t.name,
         targetId: t.id,
       });
+
+      // Kurangi langsung total budget bulan ini sesuai setoran
+      if (budgetEntry) {
+        budgetEntry.amount = Math.max(0, Number(budgetEntry.amount) - nominal);
+      }
 
       if (t.currentAmount >= t.targetAmount && !t.isArchived) {
         t.isArchived = true;
