@@ -392,23 +392,25 @@ app.add_middleware(
 
 # ============ STARTUP: SEED ADMIN ============
 def seed_admin():
+    admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
     users = load_users()
     admin_uid = None
     for uid, u in users.items():
-        if u["username"] == "admin":
+        if u["username"] == admin_username:
             admin_uid = uid
             break
     if admin_uid is None:
         admin_uid = str(uuid.uuid4())
         users[admin_uid] = {
-            "username": "admin",
+            "username": admin_username,
             "email": None,
-            "password_hash": hash_password("admin123"),
+            "password_hash": hash_password(admin_password),
             "is_admin": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         save_users(users)
-        logger.info("Seeded admin user (username=admin, password=admin123)")
+        logger.info(f"Seeded admin user (username={admin_username})")
     else:
         # Always ensure is_admin flag is correct
         if not users[admin_uid].get("is_admin"):
