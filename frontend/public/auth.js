@@ -197,7 +197,6 @@
     const username = document.getElementById("dk-auth-username").value.trim();
     const password = document.getElementById("dk-auth-password").value;
     const email = document.getElementById("dk-auth-email").value.trim();
-    const remember = document.getElementById("dk-auth-remember").checked;
     try {
       if (!username || !password) throw new Error("Isi username dan password");
       if (authMode === "register" && password.length < 6)
