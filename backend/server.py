@@ -78,7 +78,37 @@ def read_encrypted_json(path: Path, default: Any) -> Any:
 
 # ============ USER STORE ============
 def load_users() -> Dict[str, dict]:
-    return read_encrypted_json(USERS_FILE, default={})
+    """Load the users index. If the file exists but cannot be decrypted with
+    the current AES_KEY (e.g. key was rotated, file from another env, etc.),
+    we auto-quarantine the file to `.corrupted-{epoch}` and start fresh so
+    the service can still boot and seed a new admin.
+
+    NOTE: this is intentionally only for the USERS index file, NOT for each
+    user's encrypted data file (those keep raising so admins can investigate).
+    """
+    if not USERS_FILE.exists() or USERS_FILE.stat().st_size == 0:
+        return {}
+    try:
+        return read_encrypted_json(USERS_FILE, default={})
+    except HTTPException:
+        # Decrypt failed -> quarantine the file and start clean
+        import time as _t
+        bak = USERS_FILE.with_suffix(USERS_FILE.suffix + f".corrupted-{int(_t.time())}")
+        try:
+            USERS_FILE.rename(bak)
+            logger.warning(
+                "USERS_FILE could not be decrypted with current AES_KEY. "
+                "Quarantined to %s and starting with empty user index.",
+                bak,
+            )
+        except Exception as rename_err:  # pragma: no cover
+            logger.error("Failed to quarantine USERS_FILE: %s", rename_err)
+            # Best effort: drop content so seed_admin can proceed
+            try:
+                USERS_FILE.unlink()
+            except Exception:
+                pass
+        return {}
 
 
 def save_users(users: Dict[str, dict]) -> None:
