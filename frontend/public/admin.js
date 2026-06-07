@@ -6,8 +6,7 @@
   if (typeof window.DK_AdminBoot !== "undefined") return;
 
   const API_BASE =
-    (window.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/$/, "") +
-    "/api";
+    "sistem-management-pengeluaran-anak-kos-production.up.railway.app/api";
 
   function getToken() {
     return sessionStorage.getItem("dk_auth_token") ||
