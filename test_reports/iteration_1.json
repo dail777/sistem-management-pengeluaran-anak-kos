@@ -1,0 +1,48 @@
+{
+  "summary": "Dompetku auth + encrypted storage end-to-end testing. 19/19 backend pytest tests PASS (register validation, duplicate detection, login by username/email, wrong-password 401 with localized detail, /auth/me with/without/invalid token, /data GET/PUT roundtrip, user-to-user data isolation, AES-256-GCM encryption-at-rest verified by reading raw files). Frontend UI flows PASS: auth screen renders, register/login work, expense added via FAB FAB+modal updates dashboard (Rp 75.000), sync indicator goes 'syncing'→'ok', logout→login persists expense (proves backend hydration, not just localStorage), and 'Ingat saya' (remember-me) keeps user signed in across reload. ONE non-critical UX bug found: wrong-password shows generic 'Request failed' instead of backend's 'Username atau password salah' because the Emergent platform's emergent-main.js wraps window.fetch and pre-consumes response.text() on non-OK responses, breaking the subsequent res.json() call in auth.js (returns null).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "auth.js (api() helper, line 53-55)",
+        "issue": "Wrong-password / duplicate-username flows display generic 'Request failed' instead of the backend's localized detail (e.g. 'Username atau password salah', 'Username sudah digunakan'). Root cause: Emergent platform's emergent-main.js monkey-patches window.fetch and calls response.text() on every non-OK response (for network-error reporting to parent frame), which consumes the body stream — auth.js's subsequent `await res.json()` returns null and the code falls back to the hardcoded 'Request failed' string. Verified in-browser via res.clone() throwing 'Response body is already used'.",
+        "selector": "[data-testid='auth-error']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dompetku_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "FIX (auth.js api() error branch): since the platform's fetch wrapper consumes the body on non-OK responses, do not rely on res.json() for error messages. Instead, map HTTP status → localized string on the client. Example: if (!body?.detail) { msg = res.status===401 ? 'Username atau password salah' : res.status===400 ? 'Data tidak valid / sudah digunakan' : `Request failed (${res.status})`; }. Optionally try fetch with `cache: 'no-store'` and a manual XHR fallback if you must read the body.",
+    "(Optional polish) Also surface 422 Pydantic validation errors with a friendlier Indonesian message — currently they would also collapse to 'Request failed'."
+  ],
+  "critical_code_review_comments": [
+    "server.py register() username validator (lines 199-203) has dead/buggy logic: `if not username.isalnum() and '_' not in username:` will allow ANY username that contains an underscore through the first guard (e.g. 'foo!_bar' passes the outer check) and the inner loop only runs in that branch. Recommend simplifying to: `if not all(ch.isalnum() or ch == '_' for ch in username): raise 400`.",
+    "server.py uses module-level file I/O (load_users / save_users) without locks — concurrent register/PUT-data requests can race and lose writes since the entire users.json.enc is rewritten each time. For single-user personal-finance use it is fine, but worth noting if multi-user scale is ever expected (add asyncio.Lock or per-file lock).",
+    "JWT has no refresh / revocation mechanism (7-day expiry). Acceptable for the stated scope; document it.",
+    "auth.js stores JWT in sessionStorage / localStorage (XSS-readable). Acceptable per chosen design (Bearer tokens, not httpOnly cookies) — flagged for awareness only.",
+    "CORS_ORIGINS='*' combined with allow_credentials=True is invalid per CORS spec; browsers will ignore credentials. Currently no cookies are used so it does not break anything, but tighten to explicit origins if/when cookies are added.",
+    "Per-user data file is rewritten in full on every PUT (no delta). Fine for small datasets; consider size cap server-side to prevent storage abuse."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_dompetku_backend.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 pytest)",
+    "frontend": "~95% (all flows work; only error-message wording is wrong on failure paths)"
+  },
+  "test_credentials": "username=testuser / password=testpass123 (already seeded). Tests also create disposable users test_a_<uuid> and test_b_<uuid> per run.",
+  "seed_data_creation": "Each pytest run registers two ephemeral users (test_a_*, test_b_*) directly via /api/auth/register and writes one PUT /api/data payload for User A. Files persist in /app/backend/data/users.json.enc and /app/backend/data/users/<uid>.json.enc (encrypted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend is fully solid — encryption-at-rest verified (raw .json.enc files contain no plaintext field names like 'password_hash' or 'incomes'). The only outstanding issue is the auth.js error-message fallback being triggered by the Emergent platform's fetch wrapper consuming response bodies. Don't chase it as a server bug — it's purely a client-side message mapping problem. After fix, just re-run the wrong-password Playwright check.",
+  "rca_of_the_issue": "Bug: UI shows 'Request failed' instead of 'Username atau password salah'. Repro: open https://finance-vault-auth.preview.emergentagent.com/, submit any wrong credentials. RCA: window.fetch is wrapped by https://assets.emergent.sh/scripts/emergent-main.js — its wrapper does `if (!response.ok) return response.text().then(body => sendToParent('networkError', ...))` which reads the body BEFORE returning the response to caller. Subsequent `res.json()` / `res.clone()` in auth.js fail (Response body already used), so `body` is null and the code uses its hardcoded fallback 'Request failed'. Mitigation: in auth.js, branch on res.status to choose a localized message when body is unreadable (see action_items)."
+}

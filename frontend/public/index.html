@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dompetku — Manajemen Keuangan</title>
+    <link rel="stylesheet" href="%PUBLIC_URL%/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Backend base URL injected at runtime so auth.js & script.js can call /api
+      window.REACT_APP_BACKEND_URL = "%REACT_APP_BACKEND_URL%";
+    </script>
+    <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+    <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
+  </head>
+  <body>
+    <!-- React root kept hidden so CRA bundle has somewhere to mount (renders nothing) -->
+    <div id="root" style="display:none"></div>
+
+    <!-- ============== AUTH SCREEN ============== -->
+    <div id="dk-auth-screen" class="dk-auth-screen" style="display:none">
+      <div class="dk-auth-card">
+        <div class="dk-auth-brand">
+          <div class="dk-auth-logo"><i class="ti ti-wallet"></i></div>
+          <div>
+            <div class="dk-auth-brand-name">Dompetku</div>
+            <div class="dk-auth-brand-tag">manajemen keuangan</div>
+          </div>
+        </div>
+        <h1 id="dk-auth-title" class="dk-auth-title" data-testid="auth-title">Masuk ke Dompetku</h1>
+        <p id="dk-auth-sub" class="dk-auth-sub">Catatan keuanganmu, terenkripsi & aman.</p>
+
+        <form id="dk-auth-form" class="dk-auth-form" data-testid="auth-form">
+          <div class="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              id="dk-auth-username"
+              autocomplete="username"
+              placeholder="cth: budi_keuangan"
+              required
+              data-testid="auth-username-input"
+            />
+          </div>
+          <div class="form-group" id="dk-auth-email-field" style="display:none">
+            <label>Email <span class="optional">opsional</span></label>
+            <input
+              type="email"
+              id="dk-auth-email"
+              autocomplete="email"
+              placeholder="kamu@email.com"
+              data-testid="auth-email-input"
+            />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              id="dk-auth-password"
+              autocomplete="current-password"
+              placeholder="Minimal 6 karakter"
+              required
+              data-testid="auth-password-input"
+            />
+          </div>
+          <label class="dk-auth-remember">
+            <input type="checkbox" id="dk-auth-remember" />
+            <span>Ingat saya di perangkat ini</span>
+          </label>
+
+          <div id="dk-auth-error" class="dk-auth-error" style="display:none" data-testid="auth-error"></div>
+
+          <button
+            type="submit"
+            id="dk-auth-submit"
+            class="btn-primary btn-full"
+            data-testid="auth-submit-btn"
+          >
+            Masuk
+          </button>
+        </form>
+
+        <div class="dk-auth-toggle" id="dk-auth-toggle" data-testid="auth-toggle">
+          Belum punya akun? <a href="#" id="dk-auth-toggle-link">Daftar di sini</a>
+        </div>
+
+        <div class="dk-auth-security">
+          <i class="ti ti-shield-lock"></i>
+          Data kamu dienkripsi <strong>AES-256-GCM</strong> di server, tidak
+          dapat dibaca atau diubah tanpa akses ke akunmu.
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== USER BADGE (top-right, after login) ============== -->
+    <div id="dk-user-badge" class="dk-user-badge" style="display:none" data-testid="user-badge">
+      <span id="dk-sync-indicator" class="dk-sync-indicator ok" title="Tersimpan & terenkripsi di server"></span>
+      <i class="ti ti-user-circle"></i>
+      <span id="dk-user-name" data-testid="user-name">user</span>
+      <button id="dk-logout-btn" class="dk-logout-btn" title="Keluar" data-testid="logout-btn">
+        <i class="ti ti-logout"></i>
+      </button>
+    </div>
+
+    <!-- ============== DOMPETKU APP ============== -->
+    <main class="app-main">
+      <section id="tab-dashboard" class="tab-page active">
+        <div class="page-scroll">
+          <div class="balance-hero">
+            <div class="hero-greeting-row">
+              <div class="hero-greeting">
+                <span class="hero-wave">👋</span>
+                <span class="hero-greeting-text">hii ^_^</span>
+              </div>
+            </div>
+            <div class="hero-meta-row">
+              <div class="hero-month-pill" id="dash-month-label">Juni 2026</div>
+            </div>
+            <div class="hero-sisa-row">
+              <span class="hero-sisa-label">SISA KEUANGAN</span>
+              <button class="hero-toggle-btn" id="btn-toggle-saldo" aria-label="Sembunyikan saldo">
+                <i class="ti ti-eye" id="icon-toggle-saldo"></i>
+              </button>
+            </div>
+            <div class="hero-amount-row">
+              <div class="balance-amount" id="dash-saldo">Rp 0</div>
+              <i class="ti ti-chevron-right hero-chevron"></i>
+            </div>
+            <div class="balance-chips">
+              <div class="balance-chip chip-income">
+                <span class="chip-arrow chip-arrow-in"><i class="ti ti-arrow-down"></i></span>
+                <div>
+                  <div class="chip-label">Pemasukan</div>
+                  <div class="chip-value" id="dash-income">Rp 0</div>
+                </div>
+              </div>
+              <div class="balance-chip chip-expense">
+                <span class="chip-arrow chip-arrow-out"><i class="ti ti-arrow-up"></i></span>
+                <div>
+                  <div class="chip-label">Pengeluaran</div>
+                  <div class="chip-value" id="dash-expense">Rp 0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card dash-recent-card">
+            <div class="dash-recent-header">
+              <span class="dash-recent-title">Transaksi Terakhir</span>
+              <button class="section-link" data-tab="riwayat"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div id="dash-recent"></div>
+            <div id="dash-empty-state" style="display: none">
+              <div class="empty-illustration"><i class="ti ti-wallet-off"></i></div>
+              <div class="empty-title">Kamu belum memiliki transaksi</div>
+              <div class="empty-desc">Ayo mulai catat banyak transaksi sekaligus, tanpa ribet!</div>
+              <button class="btn-primary btn-full empty-btn" data-tab="pemasukan">
+                <i class="ti ti-plus"></i> Tambah Transaksi
+              </button>
+            </div>
+          </div>
+
+          <div class="card dash-budget-card">
+            <div class="dash-budget-header">
+              <span class="dash-budget-title">Budget Bulanan</span>
+              <button class="section-link" id="btn-nav-budget"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="dash-budget-amount" id="dash-budget-amount">Belum diatur</div>
+            <div class="dash-budget-bar-wrap">
+              <div class="dash-budget-bar-bg">
+                <div class="dash-budget-fill" id="dash-budget-fill" style="width: 0%"></div>
+              </div>
+              <span class="dash-budget-pct" id="dash-budget-pct">0%</span>
+            </div>
+            <div class="dash-budget-row">
+              <div class="dash-budget-stat">
+                <span class="dash-budget-stat-label">Terpakai</span>
+                <span class="dash-budget-stat-val" id="dash-budget-used">Rp 0</span>
+              </div>
+              <div class="dash-budget-stat">
+                <span class="dash-budget-stat-label">Sisa</span>
+                <span class="dash-budget-stat-val" id="dash-budget-sisa">—</span>
+              </div>
+            </div>
+            <div id="dash-warning" class="alert-warning" style="display: none">
+              <i class="ti ti-alert-triangle"></i>
+              <span id="dash-warning-text"></span>
+            </div>
+          </div>
+
+          <div class="card dash-recent-card" style="margin-top: 0">
+            <div class="dash-recent-header">
+              <span class="dash-recent-title">Target Menabung</span>
+              <button class="section-link" data-tab="target"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div id="dash-target-shortcut"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-pemasukan" class="tab-page">
+        <div class="page-scroll">
+          <div class="section-title">Input Pemasukan</div>
+          <div class="card form-card">
+            <form id="form-pemasukan">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Tanggal</label>
+                  <input type="date" id="tgl-pemasukan" name="tgl-pemasukan" required />
+                </div>
+                <div class="form-group">
+                  <label>Nominal (Rp)</label>
+                  <input type="number" id="nominal-pemasukan" name="nominal-pemasukan" placeholder="500.000" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Sumber Pemasukan</label>
+                <input type="text" id="sumber-pemasukan" name="sumber-pemasukan" placeholder="Uang orang tua, Gaji freelance…" />
+              </div>
+              <div class="form-group">
+                <label>Catatan <span class="optional">opsional</span></label>
+                <textarea id="catatan-pemasukan" name="catatan-pemasukan" rows="2" placeholder="Catatan tambahan…"></textarea>
+              </div>
+              <button type="submit" class="btn-primary btn-full">
+                <i class="ti ti-plus"></i> Simpan Pemasukan
+              </button>
+            </form>
+          </div>
+          <div class="section-title section-title-sm">Daftar Pemasukan</div>
+          <div id="list-pemasukan" class="items-list"></div>
+        </div>
+      </section>
+
+      <section id="tab-pengeluaran" class="tab-page">
+        <div class="page-scroll">
+          <div class="card" style="padding: 24px 16px; margin: 0 -16px 16px -16px; border-radius: 0; border-top: none; border-left: none; border-right: none;">
+            <div class="expense-header" style="margin-bottom: 24px">
+              <div class="expense-month-title" style="margin-bottom: 20px">Tren Pengeluaran</div>
+              <div class="expense-total-label">Total Semua Pengeluaran</div>
+              <div class="expense-total-val">
+                <span class="currency">Rp</span>
+                <span id="expense-total-amount">0</span>
+              </div>
+            </div>
+            <div class="chart-container-bar" style="margin-bottom: 0">
+              <canvas id="chart-bar-pengeluaran" height="180"></canvas>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 24px 16px; margin: 0 -16px 24px -16px; border-radius: 0; border-left: none; border-right: none;">
+            <div class="custom-month-dropdown" id="expense-month-dropdown" style="margin-bottom: 24px">
+              <button type="button" class="month-dropdown-toggle" id="month-dropdown-btn">
+                <span id="month-dropdown-label">Bulan Ini</span>
+                <i class="ti ti-chevron-down"></i>
+              </button>
+              <div class="month-dropdown-menu" id="month-dropdown-menu"></div>
+            </div>
+
+            <div class="chart-container-pie">
+              <canvas id="chart-pie-pengeluaran" height="260"></canvas>
+              <div class="pie-center-text" style="flex-direction: column; text-align: center">
+                <div class="pie-center-label" style="font-size: 0.75rem; color: var(--text-3); margin-bottom: 2px;">Total</div>
+                <div class="pie-center-val" style="font-size: 1.1rem; font-weight: 800; color: var(--text-1); letter-spacing: -0.5px;">
+                  Rp <span id="pie-total-val">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="expense-pie-legend" class="expense-pie-legend" style="margin-bottom: 0"></div>
+          </div>
+
+          <div class="section-title section-title-sm">Semua Pengeluaran</div>
+          <div id="list-pengeluaran" class="items-list"></div>
+        </div>
+      </section>
+
+      <section id="tab-riwayat" class="tab-page">
+        <div class="page-scroll">
+          <div class="balance-hero">
+            <div class="hero-greeting-row">
+              <div class="hero-greeting">
+                <span class="hero-wave">💰</span>
+                <span class="hero-greeting-text">Budget Bulanan</span>
+              </div>
+            </div>
+            <div class="hero-sisa-row">
+              <span class="hero-sisa-label">ATUR PENGELUARANMU</span>
+            </div>
+            <div class="hero-amount-row">
+              <div class="balance-amount" id="budget-hero-amount">Belum diatur</div>
+            </div>
+            <div class="balance-chips">
+              <div class="balance-chip chip-income">
+                <span class="chip-arrow chip-arrow-in"><i class="ti ti-arrow-down"></i></span>
+                <div>
+                  <div class="chip-label">Budget</div>
+                  <div class="chip-value" id="budget-hero-total">Rp 0</div>
+                </div>
+              </div>
+              <div class="balance-chip chip-expense">
+                <span class="chip-arrow chip-arrow-out"><i class="ti ti-arrow-up"></i></span>
+                <div>
+                  <div class="chip-label">Terpakai</div>
+                  <div class="chip-value" id="budget-hero-used">Rp 0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card dash-recent-card">
+            <div class="dash-recent-header">
+              <span class="dash-recent-title">Atur Budget</span>
+            </div>
+            <form id="form-budget">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Bulan</label>
+                  <input type="month" id="bulan-budget" name="bulan-budget" required />
+                </div>
+                <div class="form-group">
+                  <label>Total Budget (Rp)</label>
+                  <input type="number" id="nominal-budget" name="nominal-budget" placeholder="3.000.000" required />
+                </div>
+              </div>
+              <button type="submit" class="btn-primary btn-full">
+                <i class="ti ti-device-floppy"></i> Simpan Budget
+              </button>
+            </form>
+          </div>
+
+          <div class="card dash-budget-card" style="margin: 0 12px 10px 12px">
+            <div class="dash-recent-header">
+              <span class="dash-recent-title">Riwayat Budget</span>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Bulan</th>
+                    <th>Budget</th>
+                    <th>Pengeluaran</th>
+                    <th>Sisa</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-budget-history"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-target" class="tab-page">
+        <div class="page-scroll">
+          <div class="balance-hero" style="margin-bottom: 20px">
+            <div class="hero-greeting-row">
+              <div class="hero-greeting">
+                <span class="hero-wave">🎯</span>
+                <span class="hero-greeting-text">Target Menabung</span>
+              </div>
+            </div>
+            <div class="hero-sisa-row">
+              <span class="hero-sisa-label">TOTAL TERKUMPUL</span>
+            </div>
+            <div class="hero-amount-row" style="margin-bottom: 0">
+              <div class="balance-amount" id="target-hero-amount">Rp 0</div>
+            </div>
+          </div>
+
+          <div class="section-row" style="margin-top: 0">
+            <div class="section-title" style="margin: 0">Daftar Target</div>
+            <button class="btn-primary btn-sm" id="btn-open-add-target">
+              <i class="ti ti-plus"></i> Buat Target
+            </button>
+          </div>
+
+          <div class="card" style="margin-bottom: 16px">
+            <div class="inner-tabs">
+              <button class="inner-tab active" data-tab-detail="target-aktif">Berjalan</button>
+              <button class="inner-tab" data-tab-detail="target-arsip">Arsip</button>
+            </div>
+          </div>
+
+          <div id="target-aktif" class="inner-tab-content active">
+            <div id="target-list-active" class="target-grid"></div>
+          </div>
+
+          <div id="target-arsip" class="inner-tab-content">
+            <div id="target-list-archive" class="target-grid"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="dashboard"><i class="ti ti-home"></i><span>Beranda</span></button>
+      <button class="nav-item" data-tab="pengeluaran"><i class="ti ti-shopping-cart"></i><span>Pengeluaran</span></button>
+      <div class="nav-fab-wrap">
+        <button class="nav-fab" id="btn-open-tx-modal"><i class="ti ti-plus"></i></button>
+      </div>
+      <button class="nav-item" data-tab="riwayat"><i class="ti ti-wallet"></i><span>Budget</span></button>
+      <button class="nav-item" data-tab="target"><i class="ti ti-target"></i><span>Target</span></button>
+    </nav>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><i class="ti ti-wallet"></i></div>
+        <span>Dompetku</span>
+      </div>
+      <button class="sidebar-item active" data-tab="dashboard"><i class="ti ti-home"></i> Beranda</button>
+      <button class="sidebar-item" data-tab="pemasukan"><i class="ti ti-circle-plus"></i> Pemasukan</button>
+      <button class="sidebar-item" data-tab="pengeluaran"><i class="ti ti-shopping-cart"></i> Pengeluaran</button>
+      <button class="sidebar-item" data-tab="riwayat"><i class="ti ti-clock-hour-4"></i> Riwayat</button>
+      <button class="sidebar-item" data-tab="target"><i class="ti ti-target"></i> Target</button>
+      <div class="sidebar-footer">© 2026 Dompetku</div>
+    </nav>
+
+    <div id="modal-add-target" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span class="modal-title">Buat Target Baru</span>
+          <button class="modal-close" id="btn-close-add-target"><i class="ti ti-x"></i></button>
+        </div>
+        <form id="form-add-target">
+          <div class="form-group">
+            <label>Barang / Tujuan</label>
+            <input type="text" id="target-nama" placeholder="Misal: Beli PS5, Liburan..." required />
+          </div>
+          <div class="form-group">
+            <label>Nominal Target (Rp)</label>
+            <input type="number" id="target-nominal" placeholder="5.000.000" required />
+          </div>
+          <button type="submit" class="btn-primary btn-full" style="margin-top: 16px">Simpan Target</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="tx-modal" class="modal-overlay" style="display: none">
+      <div class="tx-modal-sheet">
+        <div class="tx-modal-header">
+          <button class="tx-modal-close" id="btn-close-tx-modal"><i class="ti ti-x"></i></button>
+          <span class="tx-modal-title">Catat Transaksi</span>
+          <div></div>
+        </div>
+        <div class="tx-type-toggle">
+          <button class="tx-type-btn active" id="tx-type-expense" data-type="pengeluaran">
+            <span class="tx-type-dot dot-expense"></span> Pengeluaran
+          </button>
+          <button class="tx-type-btn" id="tx-type-income" data-type="pemasukan">
+            <span class="tx-type-dot dot-income"></span> Pemasukan
+          </button>
+        </div>
+        <div class="tx-amount-card-wrap">
+          <div class="tx-amount-card">
+            <div class="tx-amount-display">
+              <span class="tx-currency">Rp</span>
+              <input type="text" inputmode="numeric" id="tx-nominal" class="tx-amount-input" placeholder="0" onfocus="this.placeholder = ''" onblur="this.placeholder = '0'" required />
+            </div>
+          </div>
+        </div>
+        <div class="tx-form-body">
+          <div class="tx-field">
+            <i class="ti ti-calendar"></i>
+            <input type="date" id="tx-tanggal" class="tx-input" />
+          </div>
+          <div class="tx-field" id="tx-field-sumber">
+            <i class="ti ti-coin"></i>
+            <input type="text" id="tx-sumber" class="tx-input" placeholder="Sumber pemasukan (mis: Gaji, Freelance…)" />
+          </div>
+          <div class="tx-field" id="tx-field-kategori" style="display: none; position: relative">
+            <i class="ti ti-tag"></i>
+            <div class="tx-cat-dropdown" id="tx-cat-dropdown">
+              <button type="button" class="tx-cat-selected" id="tx-cat-selected">
+                <span id="tx-cat-label">Pilih Kategori</span>
+                <i class="ti ti-chevron-down tx-cat-chevron" id="tx-cat-chevron"></i>
+              </button>
+              <div class="tx-cat-options" id="tx-cat-options">
+                <div class="tx-cat-option" data-value="makanan">🍱 <span>Makanan</span></div>
+                <div class="tx-cat-option" data-value="transport">🚌 <span>Transport</span></div>
+                <div class="tx-cat-option" data-value="jajan">☕ <span>Jajan</span></div>
+                <div class="tx-cat-option" data-value="hiburan">🎮 <span>Hiburan</span></div>
+                <div class="tx-cat-option" data-value="kesehatan">💊 <span>Kesehatan</span></div>
+                <div class="tx-cat-option" data-value="pendidikan">📚 <span>Pendidikan</span></div>
+                <div class="tx-cat-option" data-value="kebutuhan">🛍️ <span>Kebutuhan</span></div>
+                <div class="tx-cat-option" data-value="lainnya">⋯ <span>Lainnya</span></div>
+              </div>
+              <input type="hidden" id="tx-kategori" />
+            </div>
+          </div>
+          <div class="tx-field">
+            <i class="ti ti-notes"></i>
+            <textarea id="tx-catatan" class="tx-input tx-textarea" rows="2" placeholder="Catatan (opsional)…"></textarea>
+          </div>
+        </div>
+        <div class="tx-modal-footer">
+          <button class="btn-primary btn-full" id="btn-save-tx"><i class="ti ti-device-floppy"></i> Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-setor-target" class="modal-overlay" style="display: none">
+      <div class="modal-box" style="max-width: 400px">
+        <div class="modal-header">
+          <span class="modal-title">Setor Tabungan</span>
+          <button class="modal-close" onclick="document.getElementById('modal-setor-target').style.display='none'">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+        <form id="form-setor-target">
+          <div class="form-group">
+            <label>Nominal Setor (Rp)</label>
+            <input type="number" id="setor-nominal" placeholder="Masukan angka..." required />
+          </div>
+          <button type="submit" class="btn-primary btn-full">Setor Sekarang</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-history-target" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span class="modal-title">Riwayat Setoran</span>
+          <button class="modal-close" onclick="document.getElementById('modal-history-target').style.display='none'">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Tanggal</th><th style="text-align: right">Nominal</th></tr></thead>
+            <tbody id="tbody-history-target"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <a id="emergent-badge" target="_blank" href="https://app.emergent.sh/?utm_source=emergent-badge"
+       style="display: inline-flex !important; box-sizing: border-box; width: 178px; height: 40px; padding: 8px 12px; align-items: center !important; gap: 8px; border-radius: 50px !important; background: #000 !important; position: fixed !important; bottom: 16px; right: 16px; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; font-size: 12px !important; z-index: 9999 !important;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M15.5702 8.13142C15.7729 8.0412 16.0007 8.18878 15.9892 8.4103C15.8374 11.3192 14.0965 14.0405 11.2531 15.3065C8.40964 16.5725 5.2224 16.0453 2.95912 14.2117C2.78676 14.072 2.82955 13.804 3.03219 13.7137L4.95677 12.8568C5.04866 12.8159 5.15446 12.823 5.24204 12.8725C6.73377 13.7153 8.59176 13.8649 10.2772 13.1145C11.9626 12.3641 13.0947 10.8833 13.4665 9.21075C13.4883 9.11256 13.5539 9.02918 13.6457 8.98827L15.5702 8.13142Z" fill="white"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M15.3066 4.74698L15.5067 5.19653C15.5759 5.35178 15.5061 5.53366 15.3508 5.60278L1.29992 11.8586C1.14467 11.9278 0.962794 11.8579 0.893675 11.7027L0.701732 11.2716L0.693457 11.2531C-1.10317 7.21778 0.711626 2.49007 4.74692 0.693443C8.78221 -1.10318 13.51 0.711693 15.3066 4.74698ZM2.82356 8.55367C2.63552 8.63739 2.41991 8.51617 2.40853 8.31065C2.28373 6.05724 3.53858 3.85787 5.72286 2.88536C7.90715 1.91286 10.3813 2.45199 11.9724 4.05256C12.1175 4.19854 12.0633 4.43988 11.8753 4.5236L2.82356 8.55367Z" fill="white"/>
+      </svg>
+      <p style="color:#FFF !important; font-family:'Inter',sans-serif !important; font-size:13px !important; font-weight:600 !important; line-height:20px !important; margin:0 !important; white-space:nowrap !important;">Made with Emergent</p>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="%PUBLIC_URL%/auth.js"></script>
+  </body>
+</html>
