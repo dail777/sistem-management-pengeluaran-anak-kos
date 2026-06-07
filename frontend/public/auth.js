@@ -51,8 +51,20 @@
       body = await res.json();
     } catch (e) {}
     if (!res.ok) {
-      const msg = (body && (body.detail || body.message)) || "Request failed";
-      throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      let msg = body && (body.detail || body.message);
+      if (Array.isArray(msg)) msg = msg.map((e) => e.msg || e).join(", ");
+      if (!msg || typeof msg !== "string") {
+        // Body was consumed by another fetch wrapper — map status to a friendly Indonesian message.
+        if (res.status === 401) msg = "Username atau password salah";
+        else if (res.status === 400)
+          msg = "Data tidak valid atau sudah digunakan";
+        else if (res.status === 422)
+          msg = "Periksa kembali isian form (username/email/password)";
+        else if (res.status === 404) msg = "Tidak ditemukan";
+        else if (res.status >= 500) msg = "Server bermasalah, coba lagi";
+        else msg = `Permintaan gagal (${res.status})`;
+      }
+      throw new Error(msg);
     }
     return body;
   }

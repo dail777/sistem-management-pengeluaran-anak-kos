@@ -196,11 +196,8 @@ async def root():
 @api.post("/auth/register", response_model=AuthOut)
 async def register(body: RegisterIn):
     username = body.username.strip().lower()
-    if not username.isalnum() and "_" not in username:
-        # allow alphanumeric + underscore
-        for ch in username:
-            if not (ch.isalnum() or ch == "_"):
-                raise HTTPException(status_code=400, detail="Username hanya boleh huruf, angka, atau underscore")
+    if not all(ch.isalnum() or ch == "_" for ch in username):
+        raise HTTPException(status_code=400, detail="Username hanya boleh huruf, angka, atau underscore")
 
     users = load_users()
     # check username unique
