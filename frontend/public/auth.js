@@ -7,8 +7,7 @@
 // ============================================================
 (function () {
   const API_BASE =
-    (window.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/$/, "") +
-    "/api";
+    "sistem-management-pengeluaran-anak-kos-production.up.railway.app/api";
 
   const TOKEN_KEY = "dk_auth_token";
   const USER_KEY = "dk_auth_user";
