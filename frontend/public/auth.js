@@ -7,8 +7,9 @@
 // ============================================================
 (function () {
   const API_BASE =
-    "sistem-management-pengeluaran-anak-kos-production.up.railway.app/api";
-
+  (window.REACT_APP_BACKEND_URL || window.location.origin).replace(/\/$/, "") +
+  "/api";
+  
   const TOKEN_KEY = "dk_auth_token";
   const USER_KEY = "dk_auth_user";
   const DATA_KEYS = ["dk_incomes", "dk_expenses", "dk_budgets", "dk_targets"];
