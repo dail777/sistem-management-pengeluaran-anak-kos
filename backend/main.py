@@ -284,6 +284,7 @@ async def register(body: RegisterIn):
 async def login(body: LoginIn):
     username = body.username.strip().lower()
     users = load_users()
+    print("USERS:", users)
     found_uid = None
     found_user = None
     for uid, u in users.items():
