@@ -1280,7 +1280,9 @@ window.__dompetkuInit = function () {
 
       // Cek apakah cukup
       let lacking = null;
-      if (budgetTotal > 0 && budgetSisa < nominal) {
+      if (budgetTotal === 0) {
+        lacking = `Belum ada budget bulan ini. Silakan atur budget bulanan terlebih dahulu sebelum menabung.`;
+      } else if (budgetSisa < nominal) {
         lacking = `Sisa budget bulan ini: ${formatRupiah(budgetSisa)} (kurang ${formatRupiah(nominal - budgetSisa)})`;
       } else if (sisa < nominal) {
         lacking = `Sisa keuangan kamu: ${formatRupiah(sisa)} (kurang ${formatRupiah(nominal - sisa)})`;
