@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 4 regression PASSED. Setor submit handler regression from iter-3 is RESOLVED. Backend 47/47 pytest still green. Verified E2E: (T1) setor 200k of 1M budget → dk-confirm title 'Setor Rp 200.000?' (primary) → confirm → localStorage budget 1.000.000→800.000, target.currentAmount=200.000, expense {category:'menabung', note:'Liburan'} appended (Terpakai still Rp 0 because menabung excluded), success toast 'Setoran berhasil! −Rp 200.000 dari budget.' visible. (T2) setor exactly 800k → dk-confirm warning variant (yellow ⚠ icon) title 'Pemasukan & budget akan habis!' message containing 'SELURUH sisa budget bulan ini' + 'Lanjutkan setor ke target \"Liburan\"?'; cancel button keeps budget=800.000; re-confirm zeroes budget to 0 and target.currentAmount=1.000.000. (T3) with budget amount=0, setor 100k → dk-alert title 'Belum ada budget bulan ini' (only OK button, no cancel), no expense added. (T4) with budget=100k, setor 500k → dk-alert title 'Sisa budget kurang' (only OK button), no expense added. (T5) info modal exclusivity: opening Tentang then Support computed display: tentang=none, support=flex. (T6) z-index hierarchy: while support modal open, opening tx-modal yields zindex tx=300 > sup=150 so action modal sits in front. (T7) history label 'menabung - Liburan' present in dashboard innerText. (T8) logout via [data-testid=logout-btn] shows dk-confirm title 'Keluar dari akun?' with cancel — cancel keeps user logged in (logout-btn still visible). Desktop user layout: .sidebar-nav display:flex, .bottom-nav display:none, .app-main left=660 width=820, no horizontal scroll (body.scrollWidth=1920 = innerWidth). Desktop admin layout: sidebar AND bottom-nav both hidden, .admin-dashboard centered (verified visually in screenshot — Admin Panel card with Ganti Password Saya button + user list table). Admin DELETE / CHANGE-PW / SELF-PW modals all open correctly with dk-confirm wiring (Ganti Password User and Ganti Password Saya modal headers visible in admin screenshot). Native dialog handler page.on('dialog') fired 0 times across ALL flows. Admin password VERIFIED still 'admin123' at end of session (POST /api/auth/login → 200).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dompetku_backend.py",
+    "/app/backend/tests/test_iteration2_admin_refresh.py",
+    "/app/backend/tests/test_iteration3_delete_and_self_pw.py",
+    "/app/test_reports/pytest/iteration4_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "script.js L1292-1404 setor handler now fires correctly — confirms the iter-3 'submit listener not firing' issue is RESOLVED. Verified by observing budget arithmetic (1M→800k), menabung expense append, and dk-confirm appearance on every setor click.",
+    "script.js correctly: (a) excludes category==='menabung' from budgetUsed (L1314-1316), (b) decrements budgetEntry.amount by nominal (L1382-1385), (c) explicitly handles budgetTotal===0 with 'Belum ada budget bulan ini' dkAlert (L1322-1324), (d) shows warning variant dkConfirm with 'SELURUH' when nominal === budgetSisa (L1343-1353), (e) shows 'Sisa budget kurang' dkAlert when budgetSisa < nominal (L1325-1327). All branches verified live.",
+    "dk-modal.js + window.dkConfirm/dkAlert wiring is solid — modal[data-testid='dk-confirm-modal'] with title/message/ok/cancel testids all resolve; cancel button absent when called as dkAlert (verified for T3 and T4); warning variant renders yellow ⚠ icon (verified visually for T2 screenshot).",
+    "info.js closeAllInfoModals enforces single-info-modal invariant (verified Tentang→Support transition).",
+    "style.css z-index hierarchy: action modals 300 > info modals 150 (verified computed styles for tx-modal=300 vs modal-support=150).",
+    "Desktop CSS overrides: .sidebar-nav visible + .bottom-nav hidden for normal user, both hidden for body.dk-admin-mode — verified live for both user and admin sessions.",
+    "Minor: 'Riwayat' sidebar link routes to Budget Bulanan / Riwayat Budget page (budget history), NOT transaction history. The menabung expense appears in Dashboard recent transactions but the 'Semua Pengeluaran' label in PRD may refer to the Pengeluaran tab. Not a bug — label naming clarification only.",
+    "Could not E2E verify the exact dk-confirm title text strings for: admin delete ('Hapus akun ...'), admin change-pw ('Ganti password user?'), admin self-pw ('Ganti password admin?'), delete expense ('Hapus transaksi?'), delete target ('Hapus target tabungan?'). The modals all OPEN successfully (verified visually) and the dkConfirm wiring is identical to the verified flows, so high confidence they pass — but explicit title-text assertion not driven this run."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (47/47 pytest)",
+    "frontend": "~95% — all 8 core iter-4 flows (T1-T8) E2E verified, layout user+admin verified, info-modal exclusivity + z-index verified, native dialog regression verified (0 native dialogs). Admin dk-confirm exact title strings + delete-expense/delete-target dk-confirm titles inferred from code review but not click-driven this iteration."
+  },
+  "test_credentials": "admin / admin123 — VERIFIED still active at end (POST /api/auth/login → 200). Created ephemeral users tset_*, tfin_*, victim_* via /api/auth/register. One victim user had password changed to 'newpw9999' by admin (verified login works) — not the seed admin so OK.",
+  "seed_data_creation": "Per ephemeral test user: PUT /api/data with incomes=[5.000.000 gaji], budgets=[{month:current, amount:1.000.000}] (or 800.000/700.000/100.000 depending on test), targets=[{id:'t1', name:'Liburan', targetAmount:5.000.000, currentAmount:0 or 200.000 or 300.000}], expenses=[] or [{category:'menabung', note:'Liburan'}].",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All iter-4 acceptance criteria met. If main agent makes further changes, the key flows to re-verify are: setor 4 branches (200k normal / ===sisa warning / >sisa dkAlert / budget=0 dkAlert), info-modal exclusivity, z-index, logout dkConfirm, admin 3 dk-confirm flows (delete/change-pw/self-pw), and the 'no native dialog' invariant across all flows. data-testids in use: setor-nominal-input, setor-submit-btn, dk-confirm-modal, dk-confirm-title, dk-confirm-message, dk-confirm-ok, dk-confirm-cancel, logout-btn, info-tentang-btn, info-support-btn, info-bantuan-btn, admin-delete-user-btn, admin-change-pw-btn, admin-self-pw-btn. localStorage keys for state assertions: dk_budgets, dk_expenses, dk_targets, dk_incomes. Always reset admin/admin123 if you mutate.",
+  "rca_of_the_issue": "N/A — iteration 4 PASSES. The iter-3 setor-submit-listener bug was apparently a stale browser cache (per main agent note); the listener attached inside __dompetkuInit IIFE at script.js L1292-1294 fires reliably across all 3 fresh-session tests this iteration. No regressions found."
+}
