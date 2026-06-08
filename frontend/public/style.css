@@ -2670,10 +2670,6 @@ body.dk-no-auth .dk-user-badge {
   justify-content: center;
   margin: 16px 0;
 }
-.info-qris-wrap img {
-  width: 75px;
-  height: auto;
-}
 
 .info-qris-placeholder {
   width: 220px;
