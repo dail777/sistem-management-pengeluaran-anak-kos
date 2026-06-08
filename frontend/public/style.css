@@ -1,7 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 .qris-img {
-    max-width: 250px;
-    width: 100%;
+    width: 100px;
     height: auto;
     display: block;
     margin: 0 auto;
