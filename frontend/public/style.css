@@ -2674,7 +2674,7 @@ body.dk-no-auth .dk-user-badge {
 .info-qris-placeholder {
   width: 220px;
   height: 220px;
-  border: 2px dashed var(--primary);
+  border: none;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -2683,9 +2683,10 @@ body.dk-no-auth .dk-user-badge {
   gap: 8px;
   color: var(--text-2);
   font-weight: 600;
-  background: var(--primary-tint);
+  background: transparent;
   text-align: center;
   padding: 12px;
+  box-shadow: none
 }
 
 .info-qris-placeholder img {
