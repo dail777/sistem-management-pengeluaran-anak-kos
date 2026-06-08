@@ -74,8 +74,6 @@
   let syncing = false;
   function scheduleSync() {
     if (!getToken()) return;
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(doSync, 350);
   }
   async function doSync() {
     if (syncing) return;
